@@ -18,8 +18,6 @@ class PoeFilterDocumentLinkProvider {
         const isPoe1 = fullText.includes('Divination Cards');
         const domain = isPoe1 ? 'poedb.tw' : 'poe2db.tw';
         const label = isPoe1 ? 'poedb' : 'poe2db';
-        // DEBUG: remove after testing
-        vscode.window.showInformationMessage(`[DEBUG] isPoe1=${isPoe1}, domain=${domain}, hasText=${fullText.includes('Divination')}`);
         for (let i = 0; i < document.lineCount; i++) {
             const lineText = document.lineAt(i).text;
             const trimmed = lineText.trim();
