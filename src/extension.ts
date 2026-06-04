@@ -10,6 +10,8 @@ import { PoeFilterDefinitionProvider, PoeFilterReferenceProvider } from './defin
 import { PoeFilterDecorationProvider } from './decorations';
 import { PoeFilterBlockToggle } from './blockToggle';
 import { PoeFilterCodeLensProvider } from './codelens';
+import { PoeFilterDocumentLinkProvider } from './documentLinks';
+import { PoeFilterPickerProvider } from './pickers';
 
 const LANG_SELECTOR: vscode.DocumentFilter = { scheme: 'file', language: 'poe-filter' };
 
@@ -120,6 +122,20 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Block toggle (enable/disable blocks)
   new PoeFilterBlockToggle(context);
+
+  // Document links: BaseType items → poe2db.tw
+  context.subscriptions.push(
+    vscode.languages.registerDocumentLinkProvider(
+      LANG_SELECTOR,
+      new PoeFilterDocumentLinkProvider()
+    )
+  );
+
+  // QuickPick pickers: MinimapIcon / PlayEffect parameter selection
+  const pickerProvider = new PoeFilterPickerProvider(context);
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider(LANG_SELECTOR, pickerProvider)
+  );
 
   // CodeLens: state buttons above each block
   const codeLensProvider = new PoeFilterCodeLensProvider(context);

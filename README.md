@@ -2,7 +2,7 @@
 
 **Path of Exile 过滤器文件编辑器** — 专为 `.filter` 文件设计的 VSCode 扩展。
 
-提供语法高亮、智能补全、格式化、语法校验、代码片段、悬停提示、代码折叠、大纲导航、颜色预览、定义跳转、效果预览和 Block 状态切换，让编写 POE 过滤器就像写代码一样高效。
+提供语法高亮、智能补全、格式化、语法校验、代码片段、悬停提示、代码折叠、大纲导航、颜色预览、定义跳转、效果预览、Block 状态切换、BaseType 链接、参数选择器和音效试听，让编写 POE 过滤器就像写代码一样高效。
 
 ## ✨ 功能亮点
 
@@ -82,6 +82,18 @@
 
 滚动条显示绿色（Show）和红色（Hide）标记，一眼看清 block 分布。
 
+### 🔗 BaseType 链接（v5 新增）
+
+BaseType 行每个引号字符串自动下划线显示，Ctrl+Click 跳转 poe2db.tw 编年史查看物品详情。
+
+### 🎛️ 参数选择器（v5 新增）
+
+MinimapIcon 和 PlayEffect 行上方显示可点击按钮，打开候选列表直接选择参数值，无需手动输入。
+
+### 🔊 音效试听（v5 新增）
+
+CustomAlertSound 行上方显示试听按钮（音效文件存在时），点击用系统播放器播放。
+
 ## 📦 安装
 
 1. 在 VSCode 扩展市场搜索 **POE Filter Best**，或手动安装 `.vsix`
@@ -117,106 +129,5 @@
 无需额外配置，安装即用。
 
 ## 📄 许可
-
-MIT License
-
----
-
-# POE Filter Best
-
-**Path of Exile Loot Filter Editor** — A VSCode extension built for `.filter` files.
-
-Provides syntax highlighting, intelligent completion, formatting, diagnostics, snippets, hover docs, folding, outline navigation, color preview, go-to-definition, and filter preview — making POE loot filter editing as efficient as writing code.
-
-## ✨ Features
-
-### 🎨 Syntax Highlighting
-
-7 color-coded syntax categories: Block headers, Boolean conditions, Multi-select conditions, Numeric conditions, Array conditions, Mod conditions, and Visual actions.
-
-### 🧠 Intelligent Completion
-
-Context-aware autocomplete:
-
-- `Show`/`Hide` block header completion
-- All condition/action keywords, sorted by category
-- Boolean `True`/`False`, operators, colors, and shapes
-- `Class` supports 88 item classes (PoE1 + PoE2)
-
-### ✅ Real-time Diagnostics
-
-Automatic error checking with squiggly lines:
-
-- Unknown keywords, keywords outside block, duplicate definitions
-- Parameter type errors, missing required parameters
-- Show/Hide indentation errors
-
-### 📋 Snippets
-
-15 commonly used templates: currency highlighting, unique items, map filtering, 6-link detection, color presets, and more.
-
-### 📖 Hover Documentation
-
-Hover over any keyword to see description, syntax, parameters, and valid values.
-
-### 📐 Formatting
-
-`Shift+Alt+F` to format: normalize indentation, spacing, comments, and blank lines.
-
-### 📁 Code Folding
-
-Fold any `Show`/`Hide` block or consecutive comment groups — manage large filter files with ease.
-
-### 📑 Outline Navigation
-
-The outline panel shows all blocks with type and key condition summaries. Click to navigate.
-
-### 🎨 Color Preview
-
-Inline color boxes for `SetTextColor`/`SetBackgroundColor`/`SetBorderColor`. Click to open a color picker.
-
-### 🔍 Go to Definition & References
-
-- **F12**: Jump from any line inside a block to its Show/Hide header
-- **Shift+F12**: Find all lines with the same keyword or quoted string value
-
-### 👁 Filter Preview
-
-A preview tag at the end of each block header, rendered with the block's actual colors and MinimapIcon shape symbol.
-
-### 📊 Scrollbar Markers
-
-Green markers for Show blocks, red for Hide blocks — see the block layout at a glance.
-
-## 📦 Installation
-
-1. Search for **POE Filter Best** in the VSCode Extensions Marketplace, or install `.vsix` manually
-2. Open any `.filter` file to activate
-
-## 🎮 Usage
-
-| Action | Description |
-|--------|-------------|
-| Type a keyword | Triggers autocomplete |
-| Hover over keyword | Shows documentation |
-| `Shift+Alt+F` | Format document |
-| Type snippet prefix | Insert snippet |
-| `F12` | Go to block header |
-| `Shift+F12` | Find all references |
-| While editing | Auto diagnostics |
-
-## 📝 Supported Syntax
-
-Full support for Path of Exile 1 & 2 loot filter syntax:
-
-- **Conditions**: ItemLevel, Rarity, Class, BaseType, HasExplicitMod, Sockets, etc.
-- **Actions**: SetTextColor, MinimapIcon, PlayEffect, PlayAlertSound, etc.
-- **PoE2 exclusive**: IsVaalUnique, WaystoneTier, Uncut Skill Gems, etc.
-
-## ⚙️ Configuration
-
-Zero configuration required — install and start editing.
-
-## 📄 License
 
 MIT License

@@ -2,7 +2,7 @@
   "name": "poe-filter-best",
   "displayName": "POE Filter Best",
   "description": "Path of Exile loot filter file support — syntax highlighting, formatting, smart editing, completion, diagnostics, and hover",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "yl",
   "engines": {
     "vscode": "^1.85.0"
@@ -146,6 +146,7 @@
     "lint": "eslint src --ext ts"
   },
   "devDependencies": {
+    "@types/node": "^25.9.1",
     "@types/vscode": "^1.85.0",
     "typescript": "^5.4.0"
   }

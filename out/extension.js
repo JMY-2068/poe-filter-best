@@ -14,6 +14,8 @@ const definition_1 = require("./definition");
 const decorations_1 = require("./decorations");
 const blockToggle_1 = require("./blockToggle");
 const codelens_1 = require("./codelens");
+const documentLinks_1 = require("./documentLinks");
+const pickers_1 = require("./pickers");
 const LANG_SELECTOR = { scheme: 'file', language: 'poe-filter' };
 function activate(context) {
     const docFormatter = new formatter_1.PoeFilterDocumentFormatter();
@@ -52,6 +54,11 @@ function activate(context) {
     new decorations_1.PoeFilterDecorationProvider(context);
     // Block toggle (enable/disable blocks)
     new blockToggle_1.PoeFilterBlockToggle(context);
+    // Document links: BaseType items → poe2db.tw
+    context.subscriptions.push(vscode.languages.registerDocumentLinkProvider(LANG_SELECTOR, new documentLinks_1.PoeFilterDocumentLinkProvider()));
+    // QuickPick pickers: MinimapIcon / PlayEffect parameter selection
+    const pickerProvider = new pickers_1.PoeFilterPickerProvider(context);
+    context.subscriptions.push(vscode.languages.registerCodeLensProvider(LANG_SELECTOR, pickerProvider));
     // CodeLens: state buttons above each block
     const codeLensProvider = new codelens_1.PoeFilterCodeLensProvider(context);
     context.subscriptions.push(vscode.languages.registerCodeLensProvider(LANG_SELECTOR, codeLensProvider));

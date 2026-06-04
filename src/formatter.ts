@@ -48,12 +48,30 @@ function parseFilter(text: string): { blocks: ParsedBlock[]; leadingComments: st
 
     // Standalone comment line (# at start)
     if (trimmed.startsWith('#')) {
+      const afterHash = trimmed.replace(/^#\s*/, '');
+
+      // Disabled block header: # Show / # Hide — treat as new block boundary
+      const disabledHeaderMatch = afterHash.match(/^(Show|Hide)\b\s*(.*)/i);
+      if (disabledHeaderMatch) {
+        if (current) {
+          blocks.push(current);
+        }
+        inLeading = false;
+        const afterKeyword = disabledHeaderMatch[2];
+        const { content, inlineComment } = splitInlineComment(afterKeyword);
+        current = {
+          header: `# ${disabledHeaderMatch[1]}`,
+          headerComment: inlineComment || content.trim(),
+          lines: [],
+        };
+        continue;
+      }
+
       if (inLeading) {
         leadingComments.push(trimmed);
       } else if (current) {
-        const afterHash = trimmed.replace(/^#\s*/, '');
         // Detect commented-out syntax lines (# followed by a keyword)
-        const isCommentedSyntax = /^\s*(Show|Hide)\b/i.test(afterHash) ||
+        const isCommentedSyntax =
           /^(ItemLevel|DropLevel|Quality|Rarity|Class|BaseType|Prophecy|LinkedSockets|SocketGroup|Sockets|Height|Width|HasExplicitMod|HasEnchantment|AnyEnchantment|Stack|StackSize|GemLevel|GemQualityType|AlternateQuality|Identified|Corrupted|Mirrored|ElderItem|ShaperItem|HasInfluence|FracturedItem|SynthesisedItem|ShapedMap|ElderMap|BlightedMap|UberBlightedMap|MapTier|WaystoneTier|SetTextColor|SetBackgroundColor|SetBorderColor|SetFontSize|MinimapIcon|PlayEffect|PlayAlertSound|PlayAlertSoundPositional|CustomAlertSound|DisableDropSound|EnableDropSound|DisableDropSoundIfAlertSound|Continue|AreaLevel|Scourged|EnchantmentPassiveNode|EnchantmentPassiveNum|BaseDefencePercentile|BaseArmour|BaseEnergyShield|BaseEvasion|BaseWard|BaseCritChance|BaseAttackSpeed|ArchnemesisMod|TransfiguredGem|HasMod|HasSearingExarchImplicit|HasEaterOfWorldsImplicit|HasCruciblePassiveTree)\b/i.test(afterHash);
         current.lines.push({
           type: isCommentedSyntax ? 'commented-syntax' : 'pure-comment',
@@ -181,13 +199,19 @@ function formatBlock(block: ParsedBlock): string {
   }
   lines.push(header);
 
+  let prevWasPureComment = false;
   for (const bl of block.lines) {
     if (bl.type === 'pure-comment') {
-      lines.push('');
+      if (!prevWasPureComment) {
+        lines.push('');
+      }
       lines.push(bl.rawComment);
+      prevWasPureComment = true;
     } else if (bl.type === 'commented-syntax') {
+      prevWasPureComment = false;
       lines.push(bl.rawComment);
     } else {
+      prevWasPureComment = false;
       let formatted = normalizeSyntaxLine(bl.content);
       if (bl.inlineComment) {
         formatted += ` # ${bl.inlineComment}`;

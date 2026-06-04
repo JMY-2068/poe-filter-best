@@ -147,6 +147,35 @@ Toggle 循环：`Ctrl+B Ctrl+T`（自定义 → 系统 → 隐藏 → 禁用 →
 - 🟢 绿色 = Show block
 - 🔴 红色 = Hide block
 
+### 15. BaseType 链接 / BaseType Links（v5 新增）
+
+BaseType 行的每个引号字符串自动显示下划线：
+
+- Ctrl+Click → 在浏览器打开 poe2db.tw 编年史对应物品页面
+- URL 格式：`https://poe2db.tw/cn/{物品英文名}`
+- Tooltip 显示物品名
+
+### 16. 参数选择器 / Parameter Pickers（v5 新增）
+
+MinimapIcon 和 PlayEffect 行上方显示可点击按钮：
+
+- MinimapIcon → `[📐 大小] [🎨 颜色] [⬡ 形状]`
+- PlayEffect → `[🎨 颜色]`
+
+点击打开 QuickPick 候选列表，选中自动填入/替换参数值。颜色带 emoji 预览 + 中文名，形状带中文名。
+
+### 17. 音效试听 / Sound Preview（v5 新增）
+
+CustomAlertSound 行上方显示 `🔊 试听` 按钮（仅当音效文件存在时）：
+
+- 文件路径相对于 filter 文件目录解析
+- 点击用系统默认播放器播放音效
+
+### 18. 格式化增强（v5 改进）
+
+- 禁用块（`# Show`/`# Hide`）识别为独立 block，块间自动加空行
+- 连续单行注释保持紧凑排列，不加额外空行
+
 ## 安装
 
 1. 将 `poe-filter-best` 文件夹复制到 VSCode 扩展目录，或以开发模式加载
@@ -207,3 +236,4 @@ poe-filter-best/
 - **0.2.0** — 新增：自动补全、语法校验、代码片段、悬停提示
 - **0.3.0** — 新增：代码折叠、大纲视图、颜色预览、定义跳转、效果预览、滚动条标记
 - **0.4.0** — 新增：Block 状态切换（4态循环 + CodeLens 按钮）、大纲导航增强（分组/子符号/中文详情）
+- **0.5.0** — 新增：BaseType 链接（Ctrl+Click 跳转编年史）、MinimapIcon/PlayEffect 参数选择器、CustomAlertSound 试听、格式化增强（禁用块空行、连续注释紧凑）
