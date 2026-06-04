@@ -12,6 +12,7 @@ import { PoeFilterBlockToggle } from './blockToggle';
 import { PoeFilterCodeLensProvider } from './codelens';
 import { PoeFilterDocumentLinkProvider } from './documentLinks';
 import { PoeFilterPickerProvider } from './pickers';
+import { PoeFilterStatusBar } from './statusBar';
 
 const LANG_SELECTOR: vscode.DocumentFilter = { scheme: 'file', language: 'poe-filter' };
 
@@ -119,6 +120,9 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Scrollbar decorations (green=Show, red=Hide)
   new PoeFilterDecorationProvider(context);
+
+  // Status bar: POE version + block count
+  new PoeFilterStatusBar(context);
 
   // Block toggle (enable/disable blocks)
   new PoeFilterBlockToggle(context);

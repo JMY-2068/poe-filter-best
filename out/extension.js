@@ -16,6 +16,7 @@ const blockToggle_1 = require("./blockToggle");
 const codelens_1 = require("./codelens");
 const documentLinks_1 = require("./documentLinks");
 const pickers_1 = require("./pickers");
+const statusBar_1 = require("./statusBar");
 const LANG_SELECTOR = { scheme: 'file', language: 'poe-filter' };
 function activate(context) {
     const docFormatter = new formatter_1.PoeFilterDocumentFormatter();
@@ -52,6 +53,8 @@ function activate(context) {
     context.subscriptions.push(vscode.languages.registerReferenceProvider(LANG_SELECTOR, new definition_1.PoeFilterReferenceProvider()));
     // Scrollbar decorations (green=Show, red=Hide)
     new decorations_1.PoeFilterDecorationProvider(context);
+    // Status bar: POE version + block count
+    new statusBar_1.PoeFilterStatusBar(context);
     // Block toggle (enable/disable blocks)
     new blockToggle_1.PoeFilterBlockToggle(context);
     // Document links: BaseType items → poe2db.tw
