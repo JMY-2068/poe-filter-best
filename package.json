@@ -3,7 +3,21 @@
   "displayName": "POE Filter Best",
   "description": "Path of Exile loot filter file support — syntax highlighting, formatting, smart editing, completion, diagnostics, and hover",
   "version": "0.5.0",
-  "publisher": "yl",
+  "publisher": "JMY-2068",
+  "license": "MIT",
+  "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#1e1e2e",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JMY-2068/poe-filter-best"
+  },
+  "bugs": {
+    "url": "https://github.com/JMY-2068/poe-filter-best/issues"
+  },
+  "homepage": "https://github.com/JMY-2068/poe-filter-best#readme",
   "engines": {
     "vscode": "^1.85.0"
   },
