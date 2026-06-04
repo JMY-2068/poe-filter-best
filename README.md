@@ -1,61 +1,145 @@
 # POE Filter Best
 
-Path of Exile 过滤器文件（`.filter`）的 VSCode 扩展，提供语法高亮和格式化功能。
+**Path of Exile 过滤器文件编辑器** — 专为 `.filter` 文件设计的 VSCode 扩展。
 
-## 功能
+提供语法高亮、智能补全、格式化、语法校验、代码片段和悬停提示，让编写 POE 过滤器就像写代码一样高效。
 
-### 语法高亮
+## ✨ 功能亮点
 
-根据语法分类提供 7 种不同颜色高亮：
+### 🎨 语法高亮
 
-| 分类 | 示例 | 说明 |
-|------|------|------|
-| 过滤块 | `Show` `Hide` | 块开头关键字 |
-| 是否类 | `Corrupted` `Identified` `Mirrored` | True/False 条件 |
-| 多选类 | `Rarity` `HasInfluence` | 多值匹配条件 |
-| 数值类 | `ItemLevel` `GemLevel` `MapTier` | 数值范围条件，带运算符 |
-| 数组类 | `Class` `BaseType` `Sockets` | 字符串匹配条件 |
-| 词缀类 | `HasExplicitMod` `HasMod` | 词缀匹配条件 |
-| 外观类 | `SetTextColor` `MinimapIcon` `PlayEffect` | 显示样式和音效设置 |
+7 种颜色区分不同语法类型：过滤块、是否类、多选类、数值类、数组类、词缀类、外观类。
 
-### 格式化
+### 🧠 智能补全
 
-- `Shift+Alt+F` 格式化整个文档
-- 选区格式化
-- 统一 4 空格缩进
-- 关键词与参数间空格规范化
-- 运算符（`>=` `<=` `==` `>` `<` `=` `!=`）前后空格
-- 行内注释格式：`keyword value # 注释`
-- 单行注释：`#` 顶格
-- 注释掉的语法行原样保留
-- 过滤块间空行分隔
+输入即提示，上下文感知：
 
-## 安装
+- `Show`/`Hide` 块头自动补全
+- 所有条件关键字按分类排序提示
+- 布尔值 `True`/`False`、运算符、颜色、形状自动补全
+- `Class` 支持 88 个物品类别（PoE1 + PoE2）
 
-1. 将 `poe-filter-best` 文件夹复制到 VSCode 扩展目录，或以开发模式加载
-2. 打开任意 `.filter` 文件即可生效
+### ✅ 实时语法校验
 
-## 开发
+编辑时自动检查错误，红色波浪线提示：
 
-```bash
-cd poe-filter-best
-npm install
-npm run compile    # 编译
-npm run watch      # 监听编译
-```
+- 未知关键字、关键字不在 block 内、重复定义
+- 参数类型错误、缺少必要参数
+- Show/Hide 缩进错误
 
-按 `F5` 启动扩展开发宿主进行调试。
+### 📋 代码片段
 
-## 项目结构
+15 个常用模板，输入前缀快速插入：通货高亮、传奇物品、地图过滤、6连检测、配色预设等。
 
-```
-poe-filter-best/
-├── package.json                    # 扩展配置
-├── syntaxes/
-│   └── poe-filter.tmLanguage.json  # 语法高亮规则
-├── language-configuration.json     # 语言配置（注释、折叠）
-├── src/
-│   ├── extension.ts                # 扩展入口
-│   └── formatter.ts                # 格式化引擎
-└── out/                            # 编译产物
-```
+### 📖 悬停文档
+
+鼠标悬停任意关键字，显示中文说明、语法格式、参数和可选值。
+
+### 📐 格式化
+
+`Shift+Alt+F` 一键格式化：统一缩进、规范空格、整理注释、合并空行。
+
+## 📦 安装
+
+1. 在 VSCode 扩展市场搜索 **POE Filter Best**，或手动安装 `.vsix`
+2. 打开任意 `.filter` 文件即可自动激活
+
+## 🎮 使用
+
+| 操作 | 说明 |
+|------|------|
+| 输入关键字 | 触发智能补全 |
+| 鼠标悬停 | 显示关键字文档 |
+| `Shift+Alt+F` | 格式化文档 |
+| 输入片段前缀 | 插入代码片段 |
+| 编辑时 | 自动语法校验 |
+
+## 📝 支持的语法
+
+支持 Path of Exile 1 & 2 全部过滤器语法，包括：
+
+- **条件**：ItemLevel、Rarity、Class、BaseType、HasExplicitMod、Sockets 等
+- **动作**：SetTextColor、MinimapIcon、PlayEffect、PlayAlertSound 等
+- **PoE2 专有**：IsVaalUnique、WaystoneTier、Uncut Skill Gems 等
+
+## ⚙️ 配置
+
+无需额外配置，安装即用。
+
+## 📄 许可
+
+MIT License
+
+---
+
+# POE Filter Best
+
+**Path of Exile Loot Filter Editor** — A VSCode extension built for `.filter` files.
+
+Provides syntax highlighting, intelligent completion, formatting, diagnostics, snippets, and hover documentation to make writing POE loot filters as efficient as writing code.
+
+## ✨ Features
+
+### 🎨 Syntax Highlighting
+
+7 color-coded syntax categories: Block headers, Boolean conditions, Multi-select conditions, Numeric conditions, Array conditions, Mod conditions, and Visual actions.
+
+### 🧠 Intelligent Completion
+
+Context-aware autocomplete:
+
+- `Show`/`Hide` block header completion
+- All condition/action keywords, sorted by category
+- Boolean `True`/`False`, operators, colors, and shapes
+- `Class` supports 88 item classes (PoE1 + PoE2)
+
+### ✅ Real-time Diagnostics
+
+Automatic error checking with squiggly lines:
+
+- Unknown keywords, keywords outside block, duplicate definitions
+- Parameter type errors, missing required parameters
+- Show/Hide indentation errors
+
+### 📋 Snippets
+
+15 commonly used templates: currency highlighting, unique items, map filtering, 6-link detection, color presets, and more.
+
+### 📖 Hover Documentation
+
+Hover over any keyword to see description, syntax, parameters, and valid values.
+
+### 📐 Formatting
+
+`Shift+Alt+F` to format: normalize indentation, spacing, comments, and blank lines.
+
+## 📦 Installation
+
+1. Search for **POE Filter Best** in the VSCode Extensions Marketplace, or install `.vsix` manually
+2. Open any `.filter` file to activate
+
+## 🎮 Usage
+
+| Action | Description |
+|--------|-------------|
+| Type a keyword | Triggers autocomplete |
+| Hover over keyword | Shows documentation |
+| `Shift+Alt+F` | Format document |
+| Type snippet prefix | Insert snippet |
+| While editing | Auto diagnostics |
+
+## 📝 Supported Syntax
+
+Full support for Path of Exile 1 & 2 loot filter syntax:
+
+- **Conditions**: ItemLevel, Rarity, Class, BaseType, HasExplicitMod, Sockets, etc.
+- **Actions**: SetTextColor, MinimapIcon, PlayEffect, PlayAlertSound, etc.
+- **PoE2 exclusive**: IsVaalUnique, WaystoneTier, Uncut Skill Gems, etc.
+
+## ⚙️ Configuration
+
+Zero configuration required — install and start editing.
+
+## 📄 License
+
+MIT License

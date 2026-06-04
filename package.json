@@ -1,8 +1,8 @@
 {
   "name": "poe-filter-best",
   "displayName": "POE Filter Best",
-  "description": "Path of Exile loot filter file support — syntax highlighting, formatting, and smart editing",
-  "version": "0.1.0",
+  "description": "Path of Exile loot filter file support — syntax highlighting, formatting, smart editing, completion, diagnostics, and hover",
+  "version": "0.2.0",
   "publisher": "yl",
   "engines": {
     "vscode": "^1.85.0"
@@ -40,6 +40,12 @@
         "language": "poe-filter",
         "scopeName": "source.poe-filter",
         "path": "./syntaxes/poe-filter.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "poe-filter",
+        "path": "./snippets/poe-filter.json"
       }
     ],
     "commands": [
