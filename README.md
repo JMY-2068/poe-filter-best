@@ -2,7 +2,7 @@
 
 **Path of Exile 过滤器文件编辑器** — 专为 `.filter` 文件设计的 VSCode 扩展。
 
-提供语法高亮、智能补全、格式化、语法校验、代码片段和悬停提示，让编写 POE 过滤器就像写代码一样高效。
+提供语法高亮、智能补全、格式化、语法校验、代码片段、悬停提示、代码折叠、大纲导航、颜色预览、定义跳转和效果预览，让编写 POE 过滤器就像写代码一样高效。
 
 ## ✨ 功能亮点
 
@@ -39,6 +39,31 @@
 
 `Shift+Alt+F` 一键格式化：统一缩进、规范空格、整理注释、合并空行。
 
+### 📁 代码折叠
+
+每个 `Show`/`Hide` block 可折叠收起，连续注释块也可折叠，轻松管理大型 filter 文件。
+
+### 📑 大纲导航
+
+左侧大纲面板显示所有 block 结构，包含类型和关键条件摘要，点击即可跳转。
+
+### 🎨 颜色预览
+
+`SetTextColor`/`SetBackgroundColor`/`SetBorderColor` 行显示内联颜色方块，点击可打开颜色选择器直接编辑。
+
+### 🔍 定义跳转与引用
+
+- **F12**：block 内任意行跳转到 Show/Hide 头行
+- **Shift+F12**：查找所有同关键字行、同字符串值引用
+
+### 👁 效果预览
+
+每个 block 行尾显示「效果预览」标签，用该 block 的实际配色渲染，包含 MinimapIcon 形状符号。
+
+### 📊 滚动条标记
+
+滚动条显示绿色（Show）和红色（Hide）标记，一眼看清 block 分布。
+
 ## 📦 安装
 
 1. 在 VSCode 扩展市场搜索 **POE Filter Best**，或手动安装 `.vsix`
@@ -52,6 +77,8 @@
 | 鼠标悬停 | 显示关键字文档 |
 | `Shift+Alt+F` | 格式化文档 |
 | 输入片段前缀 | 插入代码片段 |
+| `F12` | 跳转到 block 头行 |
+| `Shift+F12` | 查找所有引用 |
 | 编辑时 | 自动语法校验 |
 
 ## 📝 支持的语法
@@ -76,7 +103,7 @@ MIT License
 
 **Path of Exile Loot Filter Editor** — A VSCode extension built for `.filter` files.
 
-Provides syntax highlighting, intelligent completion, formatting, diagnostics, snippets, and hover documentation to make writing POE loot filters as efficient as writing code.
+Provides syntax highlighting, intelligent completion, formatting, diagnostics, snippets, hover docs, folding, outline navigation, color preview, go-to-definition, and filter preview — making POE loot filter editing as efficient as writing code.
 
 ## ✨ Features
 
@@ -113,6 +140,31 @@ Hover over any keyword to see description, syntax, parameters, and valid values.
 
 `Shift+Alt+F` to format: normalize indentation, spacing, comments, and blank lines.
 
+### 📁 Code Folding
+
+Fold any `Show`/`Hide` block or consecutive comment groups — manage large filter files with ease.
+
+### 📑 Outline Navigation
+
+The outline panel shows all blocks with type and key condition summaries. Click to navigate.
+
+### 🎨 Color Preview
+
+Inline color boxes for `SetTextColor`/`SetBackgroundColor`/`SetBorderColor`. Click to open a color picker.
+
+### 🔍 Go to Definition & References
+
+- **F12**: Jump from any line inside a block to its Show/Hide header
+- **Shift+F12**: Find all lines with the same keyword or quoted string value
+
+### 👁 Filter Preview
+
+A preview tag at the end of each block header, rendered with the block's actual colors and MinimapIcon shape symbol.
+
+### 📊 Scrollbar Markers
+
+Green markers for Show blocks, red for Hide blocks — see the block layout at a glance.
+
 ## 📦 Installation
 
 1. Search for **POE Filter Best** in the VSCode Extensions Marketplace, or install `.vsix` manually
@@ -126,6 +178,8 @@ Hover over any keyword to see description, syntax, parameters, and valid values.
 | Hover over keyword | Shows documentation |
 | `Shift+Alt+F` | Format document |
 | Type snippet prefix | Insert snippet |
+| `F12` | Go to block header |
+| `Shift+F12` | Find all references |
 | While editing | Auto diagnostics |
 
 ## 📝 Supported Syntax
