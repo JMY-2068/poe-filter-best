@@ -5,13 +5,21 @@ const vscode = require("vscode");
 /**
  * DocumentLinkProvider for BaseType quoted strings.
  * Each quoted item in a BaseType line gets an underline decoration
- * and Ctrl+Click opens the poe2db.tw wiki page for that item.
+ * and Ctrl+Click opens the wiki page for that item.
  *
- * URL pattern: https://poe2db.tw/cn/{Item_Name_With_Underscores}
+ * POE1 filter (contains "Divination Cards") → https://poedb.tw/cn/{Item_Name}
+ * POE2 filter (default)                     → https://poe2db.tw/cn/{Item_Name}
  */
 class PoeFilterDocumentLinkProvider {
     provideDocumentLinks(document, _token) {
         const links = [];
+        // Detect POE version: POE1 filters contain "Divination Cards"
+        const fullText = document.getText();
+        const isPoe1 = fullText.includes('Divination Cards');
+        const domain = isPoe1 ? 'poedb.tw' : 'poe2db.tw';
+        const label = isPoe1 ? 'poedb' : 'poe2db';
+        // DEBUG: remove after testing
+        vscode.window.showInformationMessage(`[DEBUG] isPoe1=${isPoe1}, domain=${domain}, hasText=${fullText.includes('Divination')}`);
         for (let i = 0; i < document.lineCount; i++) {
             const lineText = document.lineAt(i).text;
             const trimmed = lineText.trim();
@@ -29,12 +37,12 @@ class PoeFilterDocumentLinkProvider {
             while ((m = regex.exec(afterBt)) !== null) {
                 const itemName = m[1];
                 const urlName = itemName.replace(/ /g, '_');
-                const url = `https://poe2db.tw/cn/${encodeURIComponent(urlName)}`;
+                const url = `https://${domain}/cn/${encodeURIComponent(urlName)}`;
                 const startCol = btIdx + m.index;
                 const endCol = startCol + m[0].length;
                 const range = new vscode.Range(i, startCol, i, endCol);
                 const link = new vscode.DocumentLink(range, vscode.Uri.parse(url));
-                link.tooltip = `查看 ${itemName} — poe2db.tw`;
+                link.tooltip = `查看 ${itemName} — ${label}.tw`;
                 links.push(link);
             }
         }
