@@ -1,0 +1,133 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicolo-ribaudo/tc39-proposal-json-parse-with-source/main/vendor/TextMate grammar.json",
+  "name": "POE Filter",
+  "scopeName": "source.poe-filter",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#block-header" },
+    { "include": "#boolean-conditions" },
+    { "include": "#multi-select-conditions" },
+    { "include": "#numeric-conditions" },
+    { "include": "#array-conditions" },
+    { "include": "#mod-conditions" },
+    { "include": "#visual-actions" },
+    { "include": "#other-conditions" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#operators" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.number-sign.poe-filter",
+          "match": "#.*$"
+        }
+      ]
+    },
+    "block-header": {
+      "patterns": [
+        {
+          "match": "^\\b(Show|Hide)\\b",
+          "captures": {
+            "1": { "name": "keyword.control.block.poe-filter" }
+          }
+        }
+      ]
+    },
+    "boolean-conditions": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.poe-filter",
+          "comment": "是否类语法 - True/False conditions",
+          "match": "^\\s+\\b(HasImplicitMod|HasCruciblePassiveTree|Corrupted|Identified|Mirrored|AnyEnchantment|AlternateQuality|Replica|SynthesisedItem|FracturedItem|Scourged|ElderItem|ShaperItem|ShapedMap|ElderMap|BlightedMap|UberBlightedMap|MirageMap|ZanaMemory|Foulborn|Imbued|HasVaalUniqueMod|TwiceCorrupted|AlwaysShow|IsVaalUnique)\\b"
+        }
+      ]
+    },
+    "multi-select-conditions": {
+      "patterns": [
+        {
+          "name": "entity.name.type.multi-select.poe-filter",
+          "comment": "多选类语法 - Rarity, HasInfluence",
+          "match": "^\\s+\\b(Rarity|HasInfluence)\\b"
+        }
+      ]
+    },
+    "numeric-conditions": {
+      "patterns": [
+        {
+          "name": "variable.parameter.numeric.poe-filter",
+          "comment": "数值类语法 - Numeric range conditions",
+          "match": "^\\s+\\b(CorruptedMods|EnchantmentPassiveNum|Height|Width|LinkedSockets|MapTier|WaystoneTier|Quality|StackSize|ItemLevel|DropLevel|AreaLevel|GemLevel|BaseArmour|BaseEvasion|BaseEnergyShield|BaseWard|BaseDefencePercentile|HasSearingExarchImplicit|HasEaterOfWorldsImplicit|UnidentifiedItemTier|MemoryStrands)\\b"
+        }
+      ]
+    },
+    "array-conditions": {
+      "patterns": [
+        {
+          "name": "entity.other.attribute-name.array.poe-filter",
+          "comment": "数组类语法 - String matching conditions",
+          "match": "^\\s+\\b(Sockets|SocketGroup|Class|BaseType|EnchantmentPassiveNode|TransfiguredGem)\\b"
+        }
+      ]
+    },
+    "mod-conditions": {
+      "patterns": [
+        {
+          "name": "entity.name.function.mod.poe-filter",
+          "comment": "词缀类语法 - Mod matching",
+          "match": "^\\s+\\b(HasExplicitMod|HasMod|HasEnchantment|GemQualityType|Prophecy|BaseCritChance|BaseAttackSpeed|ArchnemesisMod|Stack)\\b"
+        }
+      ]
+    },
+    "visual-actions": {
+      "patterns": [
+        {
+          "name": "entity.name.tag.visual.poe-filter",
+          "comment": "外观类语法 - Visual display actions",
+          "match": "^\\s+\\b(SetTextColor|SetBackgroundColor|SetBorderColor|SetFontSize|MinimapIcon|PlayEffect|PlayAlertSound|PlayAlertSoundPositional|CustomAlertSound|DisableDropSound|EnableDropSound|DisableDropSoundIfAlertSound|Continue)\\b"
+        }
+      ]
+    },
+    "other-conditions": {
+      "patterns": [
+        {
+          "name": "keyword.other.poe-filter",
+          "comment": "Catch-all for unrecognized keywords",
+          "match": "^\\s+\\b(\\w+)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.poe-filter",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.poe-filter",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.poe-filter",
+          "match": "\\b\\d+\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.comparison.poe-filter",
+          "match": "(>=|<=|>|<|=|!=|==)"
+        }
+      ]
+    }
+  }
+}

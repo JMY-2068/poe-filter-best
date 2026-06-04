@@ -1,0 +1,66 @@
+{
+  "name": "poe-filter-best",
+  "displayName": "POE Filter Best",
+  "description": "Path of Exile loot filter file support — syntax highlighting, formatting, and smart editing",
+  "version": "0.1.0",
+  "publisher": "yl",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Formatters"
+  ],
+  "keywords": [
+    "poe",
+    "path of exile",
+    "loot filter",
+    "filter"
+  ],
+  "activationEvents": [
+    "onLanguage:poe-filter"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "poe-filter",
+        "aliases": [
+          "POE Filter",
+          "Path of Exile Filter"
+        ],
+        "extensions": [
+          ".filter"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "poe-filter",
+        "scopeName": "source.poe-filter",
+        "path": "./syntaxes/poe-filter.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "poe-filter-best.formatDocument",
+        "title": "POE Filter: Format Document"
+      },
+      {
+        "command": "poe-filter-best.formatSelection",
+        "title": "POE Filter: Format Selection"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}
