@@ -12,6 +12,8 @@ const symbols_1 = require("./symbols");
 const colors_1 = require("./colors");
 const definition_1 = require("./definition");
 const decorations_1 = require("./decorations");
+const blockToggle_1 = require("./blockToggle");
+const codelens_1 = require("./codelens");
 const LANG_SELECTOR = { scheme: 'file', language: 'poe-filter' };
 function activate(context) {
     const docFormatter = new formatter_1.PoeFilterDocumentFormatter();
@@ -48,6 +50,20 @@ function activate(context) {
     context.subscriptions.push(vscode.languages.registerReferenceProvider(LANG_SELECTOR, new definition_1.PoeFilterReferenceProvider()));
     // Scrollbar decorations (green=Show, red=Hide)
     new decorations_1.PoeFilterDecorationProvider(context);
+    // Block toggle (enable/disable blocks)
+    new blockToggle_1.PoeFilterBlockToggle(context);
+    // CodeLens: state buttons above each block
+    const codeLensProvider = new codelens_1.PoeFilterCodeLensProvider(context);
+    context.subscriptions.push(vscode.languages.registerCodeLensProvider(LANG_SELECTOR, codeLensProvider));
+    // Internal command: CodeLens click → move cursor + trigger block command
+    context.subscriptions.push(vscode.commands.registerTextEditorCommand('poe-filter-best._codeLensAction', (editor, _edit, command, line) => {
+        // Move cursor to the block header line
+        const pos = new vscode.Position(line, 0);
+        editor.selection = new vscode.Selection(pos, pos);
+        editor.revealRange(new vscode.Range(pos, pos));
+        // Execute the target block command
+        vscode.commands.executeCommand(`poe-filter-best.${command}`);
+    }));
 }
 function deactivate() {
     // Nothing to clean up

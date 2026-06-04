@@ -2,7 +2,7 @@
   "name": "poe-filter-best",
   "displayName": "POE Filter Best",
   "description": "Path of Exile loot filter file support — syntax highlighting, formatting, smart editing, completion, diagnostics, and hover",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "yl",
   "engines": {
     "vscode": "^1.85.0"
@@ -56,8 +56,88 @@
       {
         "command": "poe-filter-best.formatSelection",
         "title": "POE Filter: Format Selection"
+      },
+      {
+        "command": "poe-filter-best.toggleBlock",
+        "title": "POE Filter: Toggle Block"
+      },
+      {
+        "command": "poe-filter-best.showBlockCustom",
+        "title": "POE Filter: Show Block (Custom Sound)"
+      },
+      {
+        "command": "poe-filter-best.showBlockSystem",
+        "title": "POE Filter: Show Block (System Sound)"
+      },
+      {
+        "command": "poe-filter-best.hideBlock",
+        "title": "POE Filter: Hide Block"
+      },
+      {
+        "command": "poe-filter-best.disableBlock",
+        "title": "POE Filter: Disable Block"
+      },
+      {
+        "command": "poe-filter-best._codeLensAction",
+        "title": "POE Filter: CodeLens Action (internal)"
       }
-    ]
+    ],
+    "keybindings": [
+      {
+        "command": "poe-filter-best.toggleBlock",
+        "key": "ctrl+b ctrl+t",
+        "when": "editorTextFocus && editorLangId == poe-filter"
+      },
+      {
+        "command": "poe-filter-best.showBlockCustom",
+        "key": "ctrl+b ctrl+s",
+        "when": "editorTextFocus && editorLangId == poe-filter"
+      },
+      {
+        "command": "poe-filter-best.showBlockSystem",
+        "key": "ctrl+b ctrl+y",
+        "when": "editorTextFocus && editorLangId == poe-filter"
+      },
+      {
+        "command": "poe-filter-best.hideBlock",
+        "key": "ctrl+b ctrl+h",
+        "when": "editorTextFocus && editorLangId == poe-filter"
+      },
+      {
+        "command": "poe-filter-best.disableBlock",
+        "key": "ctrl+b ctrl+d",
+        "when": "editorTextFocus && editorLangId == poe-filter"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "poe-filter-best.toggleBlock",
+          "when": "editorLangId == poe-filter",
+          "group": "1_poe-filter@1"
+        },
+        {
+          "command": "poe-filter-best.showBlockCustom",
+          "when": "editorLangId == poe-filter",
+          "group": "1_poe-filter@2"
+        },
+        {
+          "command": "poe-filter-best.showBlockSystem",
+          "when": "editorLangId == poe-filter",
+          "group": "1_poe-filter@3"
+        },
+        {
+          "command": "poe-filter-best.hideBlock",
+          "when": "editorLangId == poe-filter",
+          "group": "1_poe-filter@4"
+        },
+        {
+          "command": "poe-filter-best.disableBlock",
+          "when": "editorLangId == poe-filter",
+          "group": "1_poe-filter@4"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
