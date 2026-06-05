@@ -36,6 +36,16 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "configurationDefaults": {
+      "[poe-filter]": {
+        "editor.quickSuggestions": {
+          "other": true,
+          "comments": false,
+          "strings": false
+        },
+        "editor.wordBasedSuggestions": "off"
+      }
+    },
     "configuration": {
       "title": "POE Filter Best",
       "properties": {
@@ -71,12 +81,6 @@
         "language": "poe-filter",
         "scopeName": "source.poe-filter",
         "path": "./syntaxes/poe-filter.tmLanguage.json"
-      }
-    ],
-    "snippets": [
-      {
-        "language": "poe-filter",
-        "path": "./snippets/poe-filter.json"
       }
     ],
     "commands": [

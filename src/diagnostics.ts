@@ -137,7 +137,6 @@ export class PoeFilterDiagnosticsProvider {
           blockKeywords.set(kwLower, i);
         }
 
-        const def = getKeywordDef(kw);
         if (def) {
           this.validateValue(diagnostics, i, text, content, kw, def);
         }

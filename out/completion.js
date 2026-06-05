@@ -9,8 +9,8 @@ class PoeFilterCompletionProvider {
         const prefix = line.substring(0, position.character);
         const trimmed = line.trimStart();
         const indentLen = line.length - trimmed.length;
-        // ── Block header position (line start, no indent) ──
-        if (position.character <= indentLen) {
+        // ── Block header position (line start, no indent, has content) ──
+        if (position.character <= indentLen && trimmed !== '') {
             const headerMatch = trimmed.match(/^(Show|Hide)\b/i);
             if (headerMatch && headerMatch[1].length < position.character - indentLen) {
                 return undefined;
@@ -51,7 +51,7 @@ class PoeFilterCompletionProvider {
                 return new vscode.Position(i, 0);
             }
             if (document.lineAt(i).text.trim() === '' && i < position.line) {
-                return undefined;
+                continue;
             }
         }
         return undefined;
