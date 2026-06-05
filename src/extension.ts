@@ -13,6 +13,7 @@ import { PoeFilterCodeLensProvider } from './codelens';
 import { PoeFilterDocumentLinkProvider } from './documentLinks';
 import { PoeFilterPickerProvider } from './pickers';
 import { PoeFilterStatusBar } from './statusBar';
+import { PoeFilterPanel } from './panel';
 
 const LANG_SELECTOR: vscode.DocumentFilter = { scheme: 'file', language: 'poe-filter' };
 
@@ -123,6 +124,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Status bar: POE version + block count
   new PoeFilterStatusBar(context);
+
+  // Webview panel: block explorer with color preview
+  const panel = new PoeFilterPanel(context);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(PoeFilterPanel.viewType, panel)
+  );
 
   // Block toggle (enable/disable blocks)
   new PoeFilterBlockToggle(context);

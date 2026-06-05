@@ -147,13 +147,14 @@ Toggle 循环：`Ctrl+B Ctrl+T`（自定义 → 系统 → 隐藏 → 禁用 →
 - 🟢 绿色 = Show block
 - 🔴 红色 = Hide block
 
-### 15. BaseType 链接 / BaseType Links（v5 新增）
+### 15. BaseType 链接 / BaseType Links（v5 新增，v6 增强）
 
 BaseType 行的每个引号字符串自动显示下划线：
 
-- Ctrl+Click → 在浏览器打开 poe2db.tw 编年史对应物品页面
-- URL 格式：`https://poe2db.tw/cn/{物品英文名}`
-- Tooltip 显示物品名
+- Ctrl+Click → 在浏览器打开编年史对应物品页面
+- **POE1**（检测到 `Divination Cards`）→ `https://poedb.tw/cn/{物品英文名}`
+- **POE2**（默认）→ `https://poe2db.tw/cn/{物品英文名}`
+- Tooltip 显示物品名和站点
 
 ### 16. 参数选择器 / Parameter Pickers（v5 新增）
 
@@ -175,6 +176,58 @@ CustomAlertSound 行上方显示 `🔊 试听` 按钮（仅当音效文件存在
 
 - 禁用块（`# Show`/`# Hide`）识别为独立 block，块间自动加空行
 - 连续单行注释保持紧凑排列，不加额外空行
+
+### 19. 状态栏信息 / Status Bar（v6 新增）
+
+底部状态栏显示当前 `.filter` 文件信息：
+
+- **POE 版本**：自动检测（含 `Divination Cards` 为 POE1，否则 POE2）
+- **Block 总数**：hover 显示 Show / Hide / Disabled 明细
+- 非 `.filter` 文件时自动隐藏
+
+### 20. 大纲视图 inline 注释分组（v6 增强）
+
+`Show # 一级 - 二级 - 三级` 格式的 inline 注释自动创建分层结构：
+
+- 按分隔符（默认 ` - `）拆分注释路径
+- 每级路径创建 `📁` 文件夹节点，最后一个路径段作为 block 名称
+- 无 inline 注释的 block 平铺显示
+- 分隔符可通过 `poe-filter-best.sectionSeparator` 设置自定义
+
+### 21. Block Explorer 面板 / Block Panel（v6 新增）
+
+左侧活动栏新增 Webview 面板，提供丰富的 block 管理界面：
+
+**左右分栏布局：**
+- **左侧分类 tab**：1 级分类图片 + 标题，竖排排列
+- **右侧内容区**：选中分类的 2 级目录折叠 + block 预览列表
+
+**Block 预览块：**
+- 带实际配色的物品名标签（文字色 + 背景色 + 边框色）
+- 掉落图标（MinimapIcon）显示对应 PNG 图片
+- 光柱（PlayEffect）显示对应 SVG 图标
+- Show 绿色 / Hide 红色 / Disabled 灰色区分
+
+**交互功能：**
+- 搜索框固定顶部，实时过滤 block（自动展开匹配的目录）
+- 点击预览块跳转到编辑器对应行
+- 目录折叠/展开
+- 文件切换自动刷新，编辑防抖刷新
+
+**三档密度设置：**
+
+| 密度 | 行高 | 字体 | 图标尺寸 |
+|------|------|------|----------|
+| compact | 20px | 11px | 12px |
+| normal | 26px | 12px | 16px |
+| comfortable（默认）| 32px | 13px | 20px |
+
+可通过 `poe-filter-best.panelDensity` 设置切换。
+
+**资源文件：**
+- `resources/cats/*.webp` — 1 级分类图片（通货、装备、地图等）
+- `resources/drop/icon_{Shape}{Color}.png` — MinimapIcon 掉落图标
+- `resources/cross/cross-{Color}.svg` — PlayEffect 光柱图标
 
 ## 安装
 
@@ -215,7 +268,16 @@ poe-filter-best/
 │   ├── definition.ts               # 定义跳转 + 引用 Provider
 │   ├── decorations.ts              # 效果预览 + 滚动条标记
 │   ├── blockToggle.ts              # Block 状态切换 (v4)
-│   └── codelens.ts                 # CodeLens 状态按钮 (v4)
+│   ├── codelens.ts                 # CodeLens 状态按钮 (v4)
+│   ├── documentLinks.ts            # BaseType 链接 (v5)
+│   ├── pickers.ts                  # 参数选择器 + 音效试听 (v5)
+│   ├── statusBar.ts                # 状态栏信息 (v6)
+│   ├── symbols.ts                  # 大纲视图 inline 分组 (v6)
+│   └── panel.ts                    # Block Explorer Webview 面板 (v6)
+├── resources/
+│   ├── cats/*.webp                 # 1 级分类图片
+│   ├── drop/*.png                  # 掉落图标
+│   └── cross/*.svg                 # 光柱图标
 └── out/                            # 编译产物
 ```
 
@@ -237,3 +299,4 @@ poe-filter-best/
 - **0.3.0** — 新增：代码折叠、大纲视图、颜色预览、定义跳转、效果预览、滚动条标记
 - **0.4.0** — 新增：Block 状态切换（4态循环 + CodeLens 按钮）、大纲导航增强（分组/子符号/中文详情）
 - **0.5.0** — 新增：BaseType 链接（Ctrl+Click 跳转编年史）、MinimapIcon/PlayEffect 参数选择器、CustomAlertSound 试听、格式化增强（禁用块空行、连续注释紧凑）
+- **0.6.0** — 新增：BaseType 链接 POE1/POE2 自动判断、状态栏信息、大纲 inline 注释分组、Block Explorer Webview 面板（分类图片 + 图标/光柱预览 + 搜索 + 三档密度）

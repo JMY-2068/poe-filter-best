@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-100 0 400 420" width="400" height="420">
+  <defs>
+    <radialGradient id="beam-glow" cx="50%" cy="80%" r="90%" fx="50%" fy="80%">
+      <stop offset="0%" stop-color="#cc8844" stop-opacity="1"/>
+      <stop offset="25%" stop-color="#bb7733" stop-opacity="0.8"/>
+      <stop offset="60%" stop-color="#996622" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#775511" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="beam-body" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#cc8844" stop-opacity="0.15"/>
+      <stop offset="15%" stop-color="#bb7733" stop-opacity="0.5"/>
+      <stop offset="40%" stop-color="#aa6622" stop-opacity="0.7"/>
+      <stop offset="70%" stop-color="#995511" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#884400" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <linearGradient id="beam-core" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.1"/>
+      <stop offset="20%" stop-color="#ffdda0" stop-opacity="0.35"/>
+      <stop offset="50%" stop-color="#ddaa60" stop-opacity="0.6"/>
+      <stop offset="80%" stop-color="#cc8833" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#bb6600" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <radialGradient id="ground-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#aa6633" stop-opacity="1"/>
+      <stop offset="35%" stop-color="#884422" stop-opacity="0.7"/>
+      <stop offset="70%" stop-color="#663311" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#552200" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="ground-core" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.5"/>
+      <stop offset="30%" stop-color="#cc9966" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#aa6633" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="blur-outer" x="-80%" y="-15%" width="260%" height="130%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18"/>
+    </filter>
+
+    <filter id="blur-body" x="-50%" y="-10%" width="200%" height="120%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4"/>
+    </filter>
+
+    <filter id="blur-core" x="-50%" y="-10%" width="200%" height="120%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5"/>
+    </filter>
+
+    <filter id="blur-ground" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="14"/>
+    </filter>
+
+    <filter id="blur-ground-core" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8"/>
+    </filter>
+
+    <filter id="particle-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5"/>
+    </filter>
+
+    <linearGradient id="beam-fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="white" stop-opacity="1"/>
+      <stop offset="78%" stop-color="white" stop-opacity="1"/>
+      <stop offset="90%" stop-color="white" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+
+    <mask id="beam-mask">
+      <rect x="50" y="0" width="100" height="400" fill="url(#beam-fade)"/>
+    </mask>
+  </defs>
+
+  <g>
+    <g mask="url(#beam-mask)">
+      <path d="M88,0 Q88,167 60,387 L140,387 Q112,167 112,0 Z" fill="url(#beam-body)" filter="url(#blur-body)" opacity="0.85" />
+      <path d="M92,0 Q92,167 76,387 L124,387 Q108,167 108,0 Z" fill="url(#beam-core)" filter="url(#blur-core)" opacity="0.9" />
+    </g>
+
+    <ellipse cx="100" cy="380" rx="200" ry="56" fill="url(#ground-glow)" filter="url(#blur-ground)" opacity="0.9" />
+    <ellipse cx="100" cy="380" rx="100" ry="28" fill="url(#ground-core)" filter="url(#blur-ground-core)" opacity="0.9" />
+
+    <g filter="url(#particle-glow)">
+      <circle cx="94" cy="67" r="1.8" fill="#cc9966">
+        <animate attributeName="cy" values="387;0" dur="4s" repeatCount="indefinite"/>
+        <animate attributeName="cx" values="94;90" dur="4s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0;0.8;0.8;0" dur="4s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="104" cy="133" r="1.3" fill="#ddaa77">
+        <animate attributeName="cy" values="387;0" dur="3.2s" repeatCount="indefinite"/>
+        <animate attributeName="cx" values="104;108" dur="3.2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0;0.8;0.8;0" dur="3.2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="98" cy="200" r="2" fill="#aa7744">
+        <animate attributeName="cy" values="387;0" dur="5s" repeatCount="indefinite"/>
+        <animate attributeName="cx" values="98;94" dur="5s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0;0.8;0.8;0" dur="5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="106" cy="100" r="1.5" fill="#bb8855">
+        <animate attributeName="cy" values="387;0" dur="3.8s" repeatCount="indefinite"/>
+        <animate attributeName="cx" values="106;110" dur="3.8s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0;0.8;0.8;0" dur="3.8s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="90" cy="167" r="1" fill="#eebb99">
+        <animate attributeName="cy" values="387;0" dur="4.5s" repeatCount="indefinite"/>
+        <animate attributeName="cx" values="90;87" dur="4.5s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0;0.8;0.8;0" dur="4.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="110" cy="233" r="1.6" fill="#996633">
+        <animate attributeName="cy" values="387;0" dur="4.2s" repeatCount="indefinite"/>
+        <animate attributeName="cx" values="110;113" dur="4.2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0;0.8;0.8;0" dur="4.2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="97" cy="300" r="1.4" fill="#cc9977">
+        <animate attributeName="cy" values="387;0" dur="3.5s" repeatCount="indefinite"/>
+        <animate attributeName="cx" values="97;94" dur="3.5s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0;0.8;0.8;0" dur="3.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="102" cy="333" r="1.2" fill="#ddaa88">
+        <animate attributeName="cy" values="387;0" dur="4.8s" repeatCount="indefinite"/>
+        <animate attributeName="cx" values="102;99" dur="4.8s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0;0.8;0.8;0" dur="4.8s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+
+    <g opacity="0.5">
+      <circle cx="97" cy="53" r="0.9" fill="#eeddcc">
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="103" cy="120" r="0.7" fill="#e8ddcc">
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="95" cy="213" r="1" fill="#ddccb0">
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="1.8s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="105" cy="280" r="0.8" fill="#f2eedd">
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="2.2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="99" cy="340" r="0.9" fill="#eeddd5">
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="1.6s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+  </g>
+</svg>

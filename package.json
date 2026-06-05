@@ -2,7 +2,7 @@
   "name": "poe-filter-best",
   "displayName": "POE Filter Best",
   "description": "Path of Exile loot filter file support — syntax highlighting, formatting, smart editing, completion, diagnostics, and hover",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publisher": "JMY-2068",
   "license": "MIT",
   "icon": "icon.png",
@@ -43,6 +43,13 @@
           "type": "string",
           "default": " - ",
           "description": "大纲视图中 block 注释的层级分隔符（用于 Show # 一级 - 二级 - 三级 格式）"
+        },
+        "poe-filter-best.panelDensity": {
+          "type": "string",
+          "default": "comfortable",
+          "enum": ["compact", "normal", "comfortable"],
+          "enumDescriptions": ["紧凑 — 最小间距", "标准 — 默认间距", "宽松 — 最大间距"],
+          "description": "Block Explorer 面板行间距密度"
         }
       }
     },
@@ -133,6 +140,24 @@
         "when": "editorTextFocus && editorLangId == poe-filter"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "poe-filter-explorer",
+          "title": "POE Filter",
+          "icon": "icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "poe-filter-explorer": [
+        {
+          "type": "webview",
+          "id": "poe-filter-best.blockPanel",
+          "name": "Blocks"
+        }
+      ]
+    },
     "menus": {
       "editor/context": [
         {

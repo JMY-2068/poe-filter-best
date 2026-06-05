@@ -17,6 +17,7 @@ const codelens_1 = require("./codelens");
 const documentLinks_1 = require("./documentLinks");
 const pickers_1 = require("./pickers");
 const statusBar_1 = require("./statusBar");
+const panel_1 = require("./panel");
 const LANG_SELECTOR = { scheme: 'file', language: 'poe-filter' };
 function activate(context) {
     const docFormatter = new formatter_1.PoeFilterDocumentFormatter();
@@ -55,6 +56,9 @@ function activate(context) {
     new decorations_1.PoeFilterDecorationProvider(context);
     // Status bar: POE version + block count
     new statusBar_1.PoeFilterStatusBar(context);
+    // Webview panel: block explorer with color preview
+    const panel = new panel_1.PoeFilterPanel(context);
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider(panel_1.PoeFilterPanel.viewType, panel));
     // Block toggle (enable/disable blocks)
     new blockToggle_1.PoeFilterBlockToggle(context);
     // Document links: BaseType items → poe2db.tw
