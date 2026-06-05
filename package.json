@@ -2,7 +2,7 @@
   "name": "poe-filter-best",
   "displayName": "一乐过滤本地编辑增强",
   "description": "一款适用于一乐过滤本地编辑的增强扩展插件,提供语法高亮,格式化,智能补全,语法校验,悬停提示,效果预览,批量改色等功能,大幅提升本地过滤编辑体验",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "publisher": "JMY-2068",
   "license": "MIT",
   "icon": "icon.png",
@@ -123,33 +123,6 @@
           "light": "resources/icons/sound-light.svg",
           "dark": "resources/icons/sound-dark.svg"
         }
-      }
-    ],
-    "keybindings": [
-      {
-        "command": "poe-filter-best.toggleBlock",
-        "key": "ctrl+b ctrl+t",
-        "when": "editorTextFocus && editorLangId == poe-filter"
-      },
-      {
-        "command": "poe-filter-best.showBlockCustom",
-        "key": "ctrl+b ctrl+s",
-        "when": "editorTextFocus && editorLangId == poe-filter"
-      },
-      {
-        "command": "poe-filter-best.showBlockSystem",
-        "key": "ctrl+b ctrl+y",
-        "when": "editorTextFocus && editorLangId == poe-filter"
-      },
-      {
-        "command": "poe-filter-best.hideBlock",
-        "key": "ctrl+b ctrl+h",
-        "when": "editorTextFocus && editorLangId == poe-filter"
-      },
-      {
-        "command": "poe-filter-best.disableBlock",
-        "key": "ctrl+b ctrl+d",
-        "when": "editorTextFocus && editorLangId == poe-filter"
       }
     ],
     "viewsContainers": {
