@@ -224,6 +224,48 @@ CustomAlertSound 行上方显示 `🔊 试听` 按钮（仅当音效文件存在
 
 可通过 `poe-filter-best.panelDensity` 设置切换。
 
+### 22. Title bar 音效切换 / Sound Mode Toggle（v7 新增）
+
+编辑器 tab 栏右侧显示音效图标（light/dark 主题自适应），点击弹出 QuickPick：
+
+- **切换为自定义音效** — 全文件 `CustomAlertSound` 生效，`PlayAlertSound` 注释
+- **切换为系统音效** — 全文件 `PlayAlertSound` 生效，`CustomAlertSound` 注释
+
+注释格式：`#      keyword value`（`#` + 6 空格），缩进 4 空格。
+
+### 23. 全局批量操作 / Global Operations（v7 新增）
+
+左侧面板「全局操作」tab 提供一键批量操作：
+
+- **音效模式切换** — 同 Title bar 音效切换功能
+- **全局字体 +1/-1** — 全文件 `SetFontSize` 统一增减（范围 12-45），包括禁用块
+- **全局光柱开关** — 仅活跃 Show 块的 `PlayEffect` 一键开启/关闭
+
+### 24. 我的过滤 / My Filters（v8 新增）
+
+左侧面板「我的过滤」tab 自动管理过滤文件：
+
+**自动扫描目录：**
+- POE1：`%USERPROFILE%\Documents\My Games\Path of Exile\`
+- POE2：`%USERPROFILE%\Documents\My Games\Path of Exile 2\`
+
+**分组展示：**
+- 流放之路 (Path of Exile)
+- 流放之路 降临 (Path of Exile 2)
+
+**文件信息：** 文件名、大小（B/KB）、修改日期
+
+**交互：**
+- 点击文件名在编辑器中打开
+- 删除按钮（modal 确认弹窗）
+- 刷新按钮重新扫描目录
+- 无文件时显示友好提示
+
+**三个 Tab：**
+- **过滤编辑** — 分类树 + Block 预览 + 搜索
+- **全局操作** — 音效切换、字体调整、光柱开关
+- **我的过滤** — 文件管理（v8 新增）
+
 **资源文件：**
 - `resources/cats/*.webp` — 1 级分类图片（通货、装备、地图等）
 - `resources/drop/icon_{Shape}{Color}.png` — MinimapIcon 掉落图标
@@ -273,7 +315,7 @@ poe-filter-best/
 │   ├── pickers.ts                  # 参数选择器 + 音效试听 (v5)
 │   ├── statusBar.ts                # 状态栏信息 (v6)
 │   ├── symbols.ts                  # 大纲视图 inline 分组 (v6)
-│   └── panel.ts                    # Block Explorer Webview 面板 (v6)
+│   └── panel.ts                    # Block Explorer Webview 面板 (v6) + 我的过滤 (v8)
 ├── resources/
 │   ├── cats/*.webp                 # 1 级分类图片
 │   ├── drop/*.png                  # 掉落图标
@@ -300,3 +342,5 @@ poe-filter-best/
 - **0.4.0** — 新增：Block 状态切换（4态循环 + CodeLens 按钮）、大纲导航增强（分组/子符号/中文详情）
 - **0.5.0** — 新增：BaseType 链接（Ctrl+Click 跳转编年史）、MinimapIcon/PlayEffect 参数选择器、CustomAlertSound 试听、格式化增强（禁用块空行、连续注释紧凑）
 - **0.6.0** — 新增：BaseType 链接 POE1/POE2 自动判断、状态栏信息、大纲 inline 注释分组、Block Explorer Webview 面板（分类图片 + 图标/光柱预览 + 搜索 + 三档密度）
+- **0.7.0** — 新增：Title bar 音效切换图标、音效切换逻辑（CustomAlertSound ↔ PlayAlertSound）、面板三 tab 重构、全局操作 tab（音效/字体/光柱）、分栏独立滚动、禁用块预览修复、Block 定位 AtTop
+- **0.8.0** — 新增：我的过滤 tab — 自动扫描 POE1/POE2 游戏目录 .filter 文件、按游戏分组展示（流放之路 / 流放之路 降临）、文件信息显示、点击打开、删除确认、刷新扫描

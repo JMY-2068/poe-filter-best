@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 
 /**
  * Webview View — POE Filter Block Explorer
@@ -30,6 +32,16 @@ interface PanelBlock {
   playEffect: string;
 }
 
+// ── File info for "My Filters" tab ────────────────────────────────────
+
+interface FileInfo {
+  name: string;
+  filePath: string;
+  size: number;
+  modified: Date;
+  game: 'POE1' | 'POE2';
+}
+
 // ── Provider ──────────────────────────────────────────────────────────
 
 export class PoeFilterPanel implements vscode.WebviewViewProvider {
@@ -37,6 +49,7 @@ export class PoeFilterPanel implements vscode.WebviewViewProvider {
 
   private view: vscode.WebviewView | undefined;
   private debounceTimer: ReturnType<typeof setTimeout> | undefined;
+  private currentFilterFiles: FileInfo[] = [];
 
   constructor(private readonly extContext: vscode.ExtensionContext) {
     // Refresh on editor switch
@@ -74,7 +87,7 @@ export class PoeFilterPanel implements vscode.WebviewViewProvider {
       ],
     };
 
-    view.webview.onDidReceiveMessage(msg => {
+    view.webview.onDidReceiveMessage(async msg => {
       if (msg.type === 'goToBlock' && typeof msg.line === 'number') {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
@@ -86,6 +99,24 @@ export class PoeFilterPanel implements vscode.WebviewViewProvider {
         vscode.commands.executeCommand('poe-filter-best.toggleSoundMode');
       } else if (msg.type === 'runCmd' && msg.cmd) {
         vscode.commands.executeCommand(msg.cmd);
+      } else if (msg.type === 'openFile' && msg.path) {
+        const doc = await vscode.workspace.openTextDocument(msg.path);
+        await vscode.window.showTextDocument(doc);
+      } else if (msg.type === 'refreshFiles') {
+        this.refreshMyFilter();
+      } else if (msg.type === 'deleteFile' && msg.path) {
+        const name = path.basename(msg.path);
+        const confirm = await vscode.window.showWarningMessage(
+          `确定删除 "${name}"？此操作不可撤销。`, { modal: true }, '删除'
+        );
+        if (confirm === '删除') {
+          try {
+            fs.unlinkSync(msg.path);
+            this.refreshMyFilter();
+          } catch (e) {
+            vscode.window.showErrorMessage(`删除失败: ${(e as Error).message}`);
+          }
+        }
       }
     });
 
@@ -105,6 +136,48 @@ export class PoeFilterPanel implements vscode.WebviewViewProvider {
       .getConfiguration('poe-filter-best')
       .get<string>('sectionSeparator', ' - ');
 
+    const blocks = this.parseBlocks(editor.document);
+    this.currentFilterFiles = this.scanFilterFiles();
+    this.view.webview.html = this.renderHtml(blocks, separator, this.view.webview);
+  }
+
+  private scanFilterFiles(): FileInfo[] {
+    const home = os.homedir();
+    const dirs: { dir: string; game: 'POE1' | 'POE2' }[] = [
+      { dir: path.join(home, 'Documents', 'My Games', 'Path of Exile'), game: 'POE1' },
+      { dir: path.join(home, 'Documents', 'My Games', 'Path of Exile 2'), game: 'POE2' },
+    ];
+    const files: FileInfo[] = [];
+    for (const { dir, game } of dirs) {
+      if (!fs.existsSync(dir)) continue;
+      try {
+        const entries = fs.readdirSync(dir);
+        for (const name of entries) {
+          if (!name.endsWith('.filter')) continue;
+          const fp = path.join(dir, name);
+          try {
+            const stat = fs.statSync(fp);
+            if (!stat.isFile()) continue;
+            files.push({ name, filePath: fp, size: stat.size, modified: stat.mtime, game });
+          } catch { /* skip unreadable */ }
+        }
+      } catch { /* skip unreadable dir */ }
+    }
+    return files;
+  }
+
+  private refreshMyFilter(): void {
+    this.currentFilterFiles = this.scanFilterFiles();
+    if (!this.view) return;
+    // Re-render current state by refreshing
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || editor.document.languageId !== 'poe-filter') {
+      this.view.webview.html = this.renderEmpty();
+      return;
+    }
+    const separator = vscode.workspace
+      .getConfiguration('poe-filter-best')
+      .get<string>('sectionSeparator', ' - ');
     const blocks = this.parseBlocks(editor.document);
     this.view.webview.html = this.renderHtml(blocks, separator, this.view.webview);
   }
@@ -268,10 +341,50 @@ export class PoeFilterPanel implements vscode.WebviewViewProvider {
           </div>
         </div>
         <div class="tab-content" id="tab-myfilter" style="display:none">
-          <div class="empty">功能开发中...</div>
+          ${this.renderMyFilterHtml()}
         </div>
         <script>${panelScript()}</script>
       </body></html>`;
+  }
+
+  private renderMyFilterHtml(): string {
+    const files = this.currentFilterFiles;
+    if (files.length === 0) {
+      return `<div class="empty">未找到 .filter 文件<br/><span style="font-size:11px">POE 目录：~/Documents/My Games/Path of Exile/</span></div>
+        <div style="padding:0 12px"><div class="sound-btn" onclick="refreshFiles()">刷新</div></div>`;
+    }
+
+    // Group by game
+    const poe1 = files.filter(f => f.game === 'POE1');
+    const poe2 = files.filter(f => f.game === 'POE2');
+
+    let html = `<div style="padding:6px 8px"><div class="sound-btn" onclick="refreshFiles()">⟳ 刷新</div></div>`;
+
+    if (poe1.length > 0) {
+      html += `<div class="game-header">流放之路 <span class="game-sub">Path of Exile</span></div>`;
+      html += poe1.map(f => this.renderFileItem(f)).join('');
+    }
+    if (poe2.length > 0) {
+      html += `<div class="game-header">流放之路 降临 <span class="game-sub">Path of Exile 2</span></div>`;
+      html += poe2.map(f => this.renderFileItem(f)).join('');
+    }
+
+    return html;
+  }
+
+  private renderFileItem(f: FileInfo): string {
+    const sizeStr = f.size < 1024 ? `${f.size} B` : `${(f.size / 1024).toFixed(1)} KB`;
+    const dateStr = f.modified.toLocaleDateString();
+    const ep = esc(f.filePath);
+    return `<div class="file-item" data-path="${ep}">
+      <div class="file-info" onclick="openFile(this.parentElement.dataset.path)">
+        <div class="file-name">${esc(f.name)}</div>
+        <div class="file-meta">${sizeStr} · ${dateStr}</div>
+      </div>
+      <div class="file-actions">
+        <span class="file-btn file-btn-danger" onclick="deleteFile(this.closest('.file-item').dataset.path)" title="删除">🗑</span>
+      </div>
+    </div>`;
   }
 
   private detectSoundMode(doc: vscode.TextDocument): 'custom' | 'system' {
@@ -575,6 +688,68 @@ function baseCss(density: string): string {
     .sound-btn:hover {
       background: var(--vscode-button-hoverBackground);
     }
+    .game-header {
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px 12px 6px;
+      color: var(--vscode-foreground);
+      border-top: 1px solid var(--vscode-panel-border);
+      margin-top: 4px;
+    }
+    .game-sub {
+      font-weight: 400;
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+    }
+    .file-item {
+      display: flex;
+      align-items: center;
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--vscode-list-hoverBackground);
+      gap: 8px;
+    }
+    .file-item:hover {
+      background: var(--vscode-list-hoverBackground);
+    }
+    .file-info {
+      flex: 1;
+      cursor: pointer;
+      min-width: 0;
+    }
+    .file-name {
+      font-size: 12px;
+      color: var(--vscode-textLink-foreground);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .file-name:hover {
+      text-decoration: underline;
+    }
+    .file-meta {
+      font-size: 10px;
+      color: var(--vscode-descriptionForeground);
+      margin-top: 1px;
+    }
+    .file-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .file-btn {
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 4px;
+      border-radius: 3px;
+      opacity: 0.6;
+    }
+    .file-btn:hover {
+      opacity: 1;
+      background: var(--vscode-toolbar-hoverBackground);
+    }
+    .file-btn-danger:hover {
+      background: rgba(255,0,0,0.15);
+    }
     .search {
       width: 100%;
       padding: 6px 8px;
@@ -786,6 +961,18 @@ function panelScript(): string {
 
     function runCmd(cmd) {
       vscode.postMessage({ type: 'runCmd', cmd });
+    }
+
+    function refreshFiles() {
+      vscode.postMessage({ type: 'refreshFiles' });
+    }
+
+    function openFile(p) {
+      vscode.postMessage({ type: 'openFile', path: p });
+    }
+
+    function deleteFile(p) {
+      vscode.postMessage({ type: 'deleteFile', path: p });
     }
 
     // Restore state
