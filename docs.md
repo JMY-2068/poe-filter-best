@@ -346,12 +346,20 @@ poe-filter-best/
 │   ├── pickers.ts                  # 参数选择器 + 音效试听 (v5)
 │   ├── statusBar.ts                # 状态栏信息 (v6)
 │   ├── symbols.ts                  # 大纲视图 inline 分组 (v6)
-│   └── panel.ts                    # Block Explorer Webview 面板 (v6) + 我的过滤 (v8)
+│   └── panel.ts                    # Block Explorer Webview 面板 (v6) + 我的过滤 (v8) + 批量改色 (v9)
 ├── resources/
-│   ├── cats/*.webp                 # 1 级分类图片
+│   ├── cats/*.webp                 # 1 级分类图片（英文文件名，CAT_FILE_MAP 做中文→英文映射）
 │   ├── drop/*.png                  # 掉落图标
 │   └── cross/*.svg                 # 光柱图标
 └── out/                            # 编译产物
+```
+
+## Webview 开发注意事项
+
+- **滚动**：`.tab-content` 统一 `overflow: hidden`，内容滚动必须用内部 div（如 `#content`、`.batch-scroll`）设置 `height` + `overflow-y: auto`，不能直接在 `.tab-content` 上设置 `overflow-y`
+- **中文资源文件名**：Marketplace 不支持中文文件名，`resources/cats/` 使用英文文件名 + `CAT_FILE_MAP` 映射
+- **弹窗关闭**：modal 用 `position: fixed` 覆盖全屏，绑 `click` 事件判断 `e.target === this` 实现点击外部关闭
+- **JSON 数据嵌入**：不要用 `<script type="application/json">` + `esc()`，浏览器不会解析 `<script>` 内的 HTML 实体。用隐藏 `<div>` 代替
 ```
 
 ## 数据来源

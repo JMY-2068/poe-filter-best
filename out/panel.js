@@ -289,9 +289,28 @@ class PoeFilterPanel {
     }
     // ── HTML rendering ───────────────────────────────────────────────
     renderEmpty() {
+        const density = vscode.workspace
+            .getConfiguration('poe-filter-best')
+            .get('panelDensity', 'comfortable');
+        const emptyHint = '<div class="empty">打开 .filter 文件查看 Block 列表</div>';
         return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-      <style>${baseCss('normal')}</style></head>
-      <body><div class="empty">打开 .filter 文件查看 Block 列表</div></body></html>`;
+      <style>${baseCss(density)}</style></head>
+      <body>
+        <div class="tab-bar">
+          <div class="tab active" data-tab="editor" onclick="switchTab('editor')">过滤编辑</div>
+          <div class="tab" data-tab="global" onclick="switchTab('global')">全局操作</div>
+          <div class="tab" data-tab="myfilter" onclick="switchTab('myfilter')">我的过滤</div>
+          <div class="tab" data-tab="batchcolor" onclick="switchTab('batchcolor')">批量改色</div>
+          <div class="tab-settings" onclick="openSettings()" title="扩展设置">⚙️</div>
+        </div>
+        <div class="tab-content" id="tab-editor">${emptyHint}</div>
+        <div class="tab-content" id="tab-global" style="display:none">${emptyHint}</div>
+        <div class="tab-content" id="tab-myfilter" style="display:none">
+          ${this.renderMyFilterHtml()}
+        </div>
+        <div class="tab-content" id="tab-batchcolor" style="display:none">${emptyHint}</div>
+        <script>${panelScript()}</script>
+      </body></html>`;
     }
     renderHtml(blocks, separator, webview) {
         const hasSections = blocks.some(b => b.comment.length > 0);
@@ -315,7 +334,7 @@ class PoeFilterPanel {
           <div class="tab active" data-tab="editor" onclick="switchTab('editor')">过滤编辑</div>
           <div class="tab" data-tab="global" onclick="switchTab('global')">全局操作</div>
           <div class="tab" data-tab="myfilter" onclick="switchTab('myfilter')">我的过滤</div>
-          <div class="tab" data-tab="batchcolor" onclick="switchTab('batchcolor')">🎨 批量改色</div>
+          <div class="tab" data-tab="batchcolor" onclick="switchTab('batchcolor')">批量改色</div>
           <div class="tab-settings" onclick="openSettings()" title="扩展设置">⚙️</div>
         </div>
         <div class="tab-content" id="tab-editor">
@@ -343,8 +362,8 @@ class PoeFilterPanel {
         <div class="tab-content" id="tab-myfilter" style="display:none">
           ${this.renderMyFilterHtml()}
         </div>
-        <div class="tab-content" id="tab-batchcolor" style="display:none;overflow-y:auto">
-          ${this.renderBatchColorHtml(blocks)}
+        <div class="tab-content" id="tab-batchcolor" style="display:none">
+          <div class="batch-scroll">${this.renderBatchColorHtml(blocks)}</div>
         </div>
         <script>${panelScript()}</script>
       </body></html>`;
@@ -797,6 +816,7 @@ function baseCss(density) {
       font-weight: 600;
     }
     .tab-content { height: calc(100vh - 32px); overflow: hidden; }
+    .batch-scroll { height: calc(100vh - 32px); overflow-y: auto; }
     #content { height: calc(100vh - 62px); overflow-y: auto; }
     .search-wrap {
       position: sticky;
