@@ -1,7 +1,7 @@
 {
   "name": "poe-filter-best",
-  "displayName": "POE Filter Best",
-  "description": "Path of Exile loot filter file support — syntax highlighting, formatting, smart editing, completion, diagnostics, and hover",
+  "displayName": "一乐过滤本地编辑增强",
+  "description": "一款适用于一乐过滤本地编辑的增强扩展插件,提供语法高亮,格式化,智能补全,语法校验,悬停提示,效果预览,批量改色等功能,大幅提升本地过滤编辑体验",
   "version": "0.9.1",
   "publisher": "JMY-2068",
   "license": "MIT",
