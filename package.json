@@ -36,6 +36,16 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "POE Filter Best",
+      "properties": {
+        "poe-filter-best.sectionSeparator": {
+          "type": "string",
+          "default": " - ",
+          "description": "大纲视图中 block 注释的层级分隔符（用于 Show # 一级 - 二级 - 三级 格式）"
+        }
+      }
+    },
     "languages": [
       {
         "id": "poe-filter",

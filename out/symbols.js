@@ -3,111 +3,109 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PoeFilterSymbolProvider = void 0;
 const vscode = require("vscode");
 /**
- * DocumentSymbolProvider for PoE filter files (v4 enhanced).
+ * DocumentSymbolProvider for PoE filter files.
  *
- * Features:
- * 1. Block grouping by section comments (# === Section ===)
- * 2. Disabled block identification (# Show / # Hide)
- * 3. Rich summary: Class, BaseType, Rarity, ItemLevel, MapTier, WaystoneTier,
- *    colors (SetTextColor/BgColor/BorderColor), PlayEffect, MinimapIcon
- * 4. Comment-based fallback descriptions
- * 5. Child symbols for key conditions within each block
+ * Grouping modes (auto-detected per file):
+ * - Inline mode:  block headers like "Show # 通货 - 赛季通货 - 三耀之火"
+ *                 → nested tree by separator-split path
+ * - Flat mode:    no inline comments on headers
+ *                 → each block is a top-level symbol
+ *
+ * Separator is configurable via poe-filter-best.sectionSeparator (default " - ").
  */
 const SUMMARY_KEYWORDS = ['Class', 'BaseType', 'Rarity', 'ItemLevel', 'MapTier', 'WaystoneTier'];
 class PoeFilterSymbolProvider {
     provideDocumentSymbols(document, _token) {
-        const symbols = [];
+        const separator = vscode.workspace
+            .getConfiguration('poe-filter-best')
+            .get('sectionSeparator', ' - ');
+        // ── Parse all blocks ──────────────────────────────────────────
+        const blocks = this.parseBlocks(document);
+        // ── Detect mode ───────────────────────────────────────────────
+        const hasInlineComments = blocks.some(b => b.comment.length > 0);
+        if (hasInlineComments) {
+            return this.buildInlineTree(document, blocks, separator);
+        }
+        else {
+            return this.buildFlatTree(document, blocks);
+        }
+    }
+    // ── Block parsing ────────────────────────────────────────────────
+    parseBlocks(document) {
+        const blocks = [];
         let blockStart = -1;
         let blockType = '';
+        let blockDisabled = false;
+        let blockComment = '';
         let blockSummary = [];
         let blockComments = [];
         let blockDetail = [];
-        let blockDisabled = false;
-        let collectingComments = true;
         let currentComments = [];
-        // Section grouping state
-        let currentSection = null;
-        let sectionStart = -1;
-        let sectionName = '';
-        const flushSection = (endLine) => {
-            if (currentSection && sectionStart >= 0) {
-                let end = endLine;
-                while (end > sectionStart && document.lineAt(end).text.trim() === '') {
-                    end--;
-                }
-                currentSection.range = new vscode.Range(sectionStart, 0, end, document.lineAt(end).text.length);
-                symbols.push(currentSection);
-            }
-            currentSection = null;
-            sectionStart = -1;
-            sectionName = '';
-        };
         const flushBlock = (endLine) => {
             if (blockStart < 0)
                 return;
-            const sym = this.createBlockSymbol(document, blockStart, endLine, blockType, blockSummary, blockComments, blockDetail, blockDisabled);
-            if (currentSection) {
-                currentSection.children.push(sym);
+            let end = endLine;
+            while (end > blockStart && document.lineAt(end).text.trim() === '') {
+                end--;
             }
-            else {
-                symbols.push(sym);
-            }
+            blocks.push({
+                startLine: blockStart,
+                endLine: end,
+                blockType,
+                disabled: blockDisabled,
+                comment: blockComment,
+                summary: [...blockSummary],
+                comments: [...blockComments],
+                detail: [...blockDetail],
+            });
+            blockStart = -1;
         };
         for (let i = 0; i < document.lineCount; i++) {
             const text = document.lineAt(i).text;
             const trimmed = text.trim();
-            // Collect top-level comments for block/section description
-            if (collectingComments && trimmed.startsWith('#')) {
+            // Collect preceding comments (only when not inside a block)
+            if (trimmed.startsWith('#') && blockStart < 0) {
+                // Check if this is a disabled block header
+                const disabledMatch = trimmed.match(/^#\s*(Show|Hide)\b/i);
+                if (disabledMatch) {
+                    flushBlock(i - 1);
+                    blockStart = i;
+                    blockType = this.capitalize(disabledMatch[1]);
+                    blockDisabled = true;
+                    blockComment = this.extractInlineComment(trimmed, disabledMatch[0]);
+                    blockSummary = [];
+                    blockComments = currentComments.length > 0 ? [...currentComments] : [];
+                    blockDetail = [];
+                    currentComments = [];
+                    continue;
+                }
+                // Regular comment line
                 const commentText = trimmed.replace(/^#\s?/, '').trim();
                 if (commentText) {
-                    // Check for section header pattern: # === Section Name ===
-                    const sectionMatch = commentText.match(/^[=─]{3,}\s*(.+?)\s*[=─]{3,}$/)
-                        || commentText.match(/^[-─]{3,}\s*(.+?)\s*[-─]{3,}$/)
-                        || commentText.match(/^={3,}\s*(.+?)\s*={3,}$/)
-                        || commentText.match(/^(.+?)\s*#{3,}$/);
-                    if (sectionMatch) {
-                        flushBlock(i - 1);
-                        blockStart = -1;
-                        flushSection(i - 1);
-                        sectionName = sectionMatch[1].trim();
-                        sectionStart = i;
-                        currentSection = new vscode.DocumentSymbol(`📁 ${sectionName}`, '', vscode.SymbolKind.Module, new vscode.Range(i, 0, i, text.length), new vscode.Range(i, 0, i, text.length));
-                        currentComments = [];
-                        continue;
-                    }
                     currentComments.push(commentText);
                 }
                 continue;
             }
             if (trimmed === '') {
+                currentComments = [];
                 continue;
             }
-            // Block header detection (active)
+            // Active block header
             const headerMatch = trimmed.match(/^(Show|Hide)\b/i);
-            // Disabled block header detection
-            const disabledMatch = trimmed.match(/^#\s*(Show|Hide)\b/i);
-            if (headerMatch || disabledMatch) {
-                // Flush previous block
+            if (headerMatch) {
                 flushBlock(i - 1);
                 blockStart = i;
-                if (disabledMatch) {
-                    blockType = disabledMatch[1].charAt(0).toUpperCase() + disabledMatch[1].slice(1).toLowerCase();
-                    blockDisabled = true;
-                }
-                else {
-                    blockType = headerMatch[1].charAt(0).toUpperCase() + headerMatch[1].slice(1).toLowerCase();
-                    blockDisabled = false;
-                }
+                blockType = this.capitalize(headerMatch[1]);
+                blockDisabled = false;
+                blockComment = this.extractInlineComment(trimmed, headerMatch[0]);
                 blockSummary = [];
                 blockComments = currentComments.length > 0 ? [...currentComments] : [];
                 blockDetail = [];
                 currentComments = [];
-                collectingComments = false;
                 continue;
             }
-            // Non-header, non-empty, non-comment line — stop collecting top-level comments
-            collectingComments = false;
             currentComments = [];
+            // Inside a block — collect summary and detail
             if (blockStart >= 0) {
                 const content = this.stripComment(trimmed);
                 if (!content)
@@ -116,14 +114,11 @@ class PoeFilterSymbolProvider {
                 if (!kwMatch)
                     continue;
                 const kw = kwMatch[1];
-                // Core summary keywords
                 if (SUMMARY_KEYWORDS.includes(kw)) {
                     const after = content.substring(kw.length).trim();
-                    if (after) {
+                    if (after)
                         blockSummary.push(`${kw} ${after}`);
-                    }
                 }
-                // Visual effects in detail
                 if (kw === 'SetTextColor' || kw === 'SetBackgroundColor' || kw === 'SetBorderColor') {
                     const colorMatch = content.match(/^(\w+)\s+(\d+)\s+(\d+)\s+(\d+)/);
                     if (colorMatch) {
@@ -150,55 +145,126 @@ class PoeFilterSymbolProvider {
                 }
             }
         }
-        // Flush last block and section
         flushBlock(document.lineCount - 1);
-        flushSection(document.lineCount - 1);
-        return symbols;
+        return blocks;
     }
-    createBlockSymbol(document, startLine, endLine, blockType, summary, comments, detail, disabled) {
-        // Build symbol name with icon prefix
-        const prefix = disabled ? '⊘ ' : (blockType === 'Show' ? '👁 ' : '🚫 ');
-        let name = prefix + blockType;
-        if (summary.length > 0) {
-            name += ` — ${summary.slice(0, 2).join(', ')}`;
+    /** Extract inline comment after # from a block header line. */
+    extractInlineComment(trimmed, headerPart) {
+        const afterHeader = trimmed.substring(headerPart.length).trim();
+        // Disabled headers like "# Show # comment" — headerPart is "# Show"
+        // Active headers like "Show # comment" — headerPart is "Show"
+        const commentMatch = afterHeader.match(/^#\s*(.*)/);
+        return commentMatch ? commentMatch[1].trim() : '';
+    }
+    // ── Inline mode tree ─────────────────────────────────────────────
+    buildInlineTree(document, blocks, separator) {
+        const rootSymbols = [];
+        const sectionMap = new Map();
+        for (const block of blocks) {
+            let parent = null;
+            if (block.comment.length > 0) {
+                const parts = block.comment.split(separator).map(s => s.trim()).filter(s => s.length > 0);
+                // Build section hierarchy
+                let currentPath = '';
+                for (const part of parts) {
+                    currentPath = currentPath ? `${currentPath}${separator}${part}` : part;
+                    if (!sectionMap.has(currentPath)) {
+                        const sectionSym = new vscode.DocumentSymbol(`📁 ${part}`, '', vscode.SymbolKind.Module, new vscode.Range(block.startLine, 0, block.startLine, 0), new vscode.Range(block.startLine, 0, block.startLine, 0));
+                        if (parent) {
+                            parent.children.push(sectionSym);
+                        }
+                        else {
+                            rootSymbols.push(sectionSym);
+                        }
+                        sectionMap.set(currentPath, sectionSym);
+                    }
+                    parent = sectionMap.get(currentPath);
+                }
+            }
+            // Create block symbol
+            const blockSym = this.createBlockSymbol(document, block, separator);
+            if (parent) {
+                parent.children.push(blockSym);
+            }
+            else {
+                rootSymbols.push(blockSym);
+            }
         }
-        else if (comments.length > 0) {
-            name += ` — ${comments[0]}`;
+        // Final pass: fix section ranges to cover all children
+        this.fixSectionRanges(rootSymbols, document);
+        return rootSymbols;
+    }
+    /** Recursively fix section ranges to cover all descendant children. */
+    fixSectionRanges(symbols, document) {
+        for (const sym of symbols) {
+            if (sym.children.length > 0) {
+                this.fixSectionRanges(sym.children, document);
+                let minLine = sym.range.start.line;
+                let maxLine = sym.range.end.line;
+                for (const child of sym.children) {
+                    minLine = Math.min(minLine, child.range.start.line);
+                    maxLine = Math.max(maxLine, child.range.end.line);
+                }
+                const endLine = Math.min(maxLine, document.lineCount - 1);
+                sym.range = new vscode.Range(minLine, 0, endLine, document.lineAt(endLine).text.length);
+            }
         }
-        // Trim trailing empty lines for the range
-        let end = endLine;
-        while (end > startLine && document.lineAt(end).text.trim() === '') {
-            end--;
+    }
+    // ── Flat mode tree ───────────────────────────────────────────────
+    buildFlatTree(document, blocks) {
+        const sep = vscode.workspace.getConfiguration('poe-filter-best').get('sectionSeparator', ' - ');
+        return blocks.map(block => this.createBlockSymbol(document, block, sep));
+    }
+    // ── Symbol creation ──────────────────────────────────────────────
+    createBlockSymbol(document, block, separator) {
+        const prefix = block.disabled ? '⊘ ' : (block.blockType === 'Show' ? '👁 ' : '🚫 ');
+        // Use last segment of inline comment as display name
+        let displayPart = '';
+        if (block.comment.length > 0) {
+            const parts = block.comment.split(separator).map(s => s.trim()).filter(s => s.length > 0);
+            displayPart = parts.length > 0 ? parts[parts.length - 1] : '';
         }
-        const range = new vscode.Range(startLine, 0, end, document.lineAt(end).text.length);
-        const selectionRange = new vscode.Range(startLine, 0, startLine, blockType.length);
+        let name;
+        if (displayPart) {
+            name = `${prefix}${block.blockType} — ${displayPart}`;
+        }
+        else if (block.summary.length > 0) {
+            name = `${prefix}${block.blockType} — ${block.summary.slice(0, 2).join(', ')}`;
+        }
+        else if (block.comments.length > 0) {
+            name = `${prefix}${block.blockType} — ${block.comments[0]}`;
+        }
+        else {
+            name = `${prefix}${block.blockType}`;
+        }
+        const range = new vscode.Range(block.startLine, 0, block.endLine, document.lineAt(block.endLine).text.length);
+        const selectionRange = new vscode.Range(block.startLine, 0, block.startLine, block.blockType.length);
         // Build detail string
         const detailParts = [];
-        if (disabled)
+        if (block.disabled)
             detailParts.push('⨯ 已禁用');
-        if (summary.length > 2) {
-            detailParts.push(...summary.slice(2));
+        if (block.summary.length > 2) {
+            detailParts.push(...block.summary.slice(2));
         }
-        if (detail.length > 0) {
-            detailParts.push(...detail);
+        if (block.detail.length > 0) {
+            detailParts.push(...block.detail);
         }
-        if (comments.length > 0 && summary.length === 0) {
-            detailParts.push(...comments.slice(0, 2));
+        if (block.comments.length > 0 && block.summary.length === 0) {
+            detailParts.push(...block.comments.slice(0, 2));
         }
-        // SymbolKind: Show=Class (blue), Hide=Key (purple), Disabled=Variable (grey)
         let kind;
-        if (disabled) {
+        if (block.disabled) {
             kind = vscode.SymbolKind.Variable;
         }
-        else if (blockType === 'Show') {
+        else if (block.blockType === 'Show') {
             kind = vscode.SymbolKind.Class;
         }
         else {
             kind = vscode.SymbolKind.Key;
         }
         const sym = new vscode.DocumentSymbol(name, detailParts.join(' | '), kind, range, selectionRange);
-        // Add child symbols for notable conditions
-        const children = this.createConditionSymbols(document, startLine, end);
+        // Add child symbols for key conditions
+        const children = this.createConditionSymbols(document, block.startLine, block.endLine);
         if (children.length > 0) {
             sym.children = children;
         }
@@ -245,9 +311,10 @@ class PoeFilterSymbolProvider {
         }
         return children;
     }
-    /**
-     * Approximate color name from RGB values.
-     */
+    // ── Helpers ───────────────────────────────────────────────────────
+    capitalize(s) {
+        return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+    }
     describeColor(r, g, b) {
         if (r < 30 && g < 30 && b < 30)
             return '黑';
