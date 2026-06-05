@@ -122,7 +122,9 @@ export class PoeFilterDiagnosticsProvider {
         }
 
         const kwLower = kw.toLowerCase();
-        if (blockKeywords.has(kwLower)) {
+        const def = getKeywordDef(kw);
+        const allowDup = def && (def.valueType === 'string-array' || def.valueType === 'numeric');
+        if (blockKeywords.has(kwLower) && !allowDup) {
           const firstLine = blockKeywords.get(kwLower)!;
           const start = text.length - text.trimStart().length;
           const range = new vscode.Range(i, start, i, start + kw.length);
