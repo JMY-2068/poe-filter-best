@@ -32,8 +32,14 @@ class PoeFilterPanel {
                 if (editor) {
                     const pos = new vscode.Position(msg.line, 0);
                     editor.selection = new vscode.Selection(pos, pos);
-                    editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
+                    editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.AtTop);
                 }
+            }
+            else if (msg.type === 'toggleSound') {
+                vscode.commands.executeCommand('poe-filter-best.toggleSoundMode');
+            }
+            else if (msg.type === 'runCmd' && msg.cmd) {
+                vscode.commands.executeCommand(msg.cmd);
             }
         });
         this.refresh();
@@ -116,7 +122,11 @@ class PoeFilterPanel {
             }
             // Inside block
             if (blockStart >= 0) {
-                const content = stripComment(trimmed);
+                let content = stripComment(trimmed);
+                // For disabled blocks, strip the "# " prefix to parse inner content
+                if (!content && blockDisabled && trimmed.startsWith('#')) {
+                    content = trimmed.replace(/^#\s+/, '');
+                }
                 if (!content)
                     continue;
                 const kwM = content.match(/^(\w+)/);
@@ -181,15 +191,54 @@ class PoeFilterPanel {
         else {
             body = '<div class="tree">' + blocks.map(b => renderBlock(b, separator, 0, webview, this.extContext.extensionPath)).join('') + '</div>';
         }
+        // Detect current sound mode
+        const editor = vscode.window.activeTextEditor;
+        const soundMode = editor ? this.detectSoundMode(editor.document) : 'custom';
         return `<!DOCTYPE html><html><head><meta charset="UTF-8">
       <style>${baseCss(density)}</style></head>
       <body>
-        <div class="search-wrap">
-          <input class="search" id="search" placeholder="搜索 Block..." />
+        <div class="tab-bar">
+          <div class="tab active" data-tab="editor" onclick="switchTab('editor')">过滤编辑</div>
+          <div class="tab" data-tab="global" onclick="switchTab('global')">全局操作</div>
+          <div class="tab" data-tab="myfilter" onclick="switchTab('myfilter')">我的过滤</div>
         </div>
-        <div id="content">${body}</div>
-        <script>${searchScript()}</script>
+        <div class="tab-content" id="tab-editor">
+          <div class="search-wrap">
+            <input class="search" id="search" placeholder="搜索 Block..." />
+          </div>
+          <div id="content">${body}</div>
+        </div>
+        <div class="tab-content" id="tab-global" style="display:none">
+          <div class="section-title">音效模式</div>
+          <div class="sound-mode-current">当前：${soundMode === 'custom' ? '自定义音效' : '系统音效'}</div>
+          <div class="sound-actions">
+            <div class="sound-btn" onclick="toggleSound()">切换自定义音效/系统音效</div>
+          </div>
+          <div class="section-title">字体大小</div>
+          <div class="sound-actions" style="flex-direction: row;">
+            <div class="sound-btn" style="flex:1" onclick="runCmd('poe-filter-best.fontSizeUp')">字体 +1</div>
+            <div class="sound-btn" style="flex:1" onclick="runCmd('poe-filter-best.fontSizeDown')">字体 -1</div>
+          </div>
+          <div class="section-title">光柱效果</div>
+          <div class="sound-actions">
+            <div class="sound-btn" onclick="runCmd('poe-filter-best.togglePlayEffect')">开启/关闭光柱</div>
+          </div>
+        </div>
+        <div class="tab-content" id="tab-myfilter" style="display:none">
+          <div class="empty">功能开发中...</div>
+        </div>
+        <script>${panelScript()}</script>
       </body></html>`;
+    }
+    detectSoundMode(doc) {
+        for (let i = 0; i < doc.lineCount; i++) {
+            const trimmed = doc.lineAt(i).text.trim();
+            if (/^CustomAlertSound\b/i.test(trimmed))
+                return 'custom';
+            if (/^PlayAlertSound\b/i.test(trimmed))
+                return 'system';
+        }
+        return 'custom';
     }
 }
 exports.PoeFilterPanel = PoeFilterPanel;
@@ -311,10 +360,10 @@ function renderBlock(b, sep, depth = 0, webview, extPath) {
     }
     // Preview label with actual colors
     let preview = '';
-    if (b.textColor || b.bgColor) {
-        const fg = b.textColor ? `rgb(${b.textColor.r},${b.textColor.g},${b.textColor.b})` : 'inherit';
-        const bg = b.bgColor ? `rgb(${b.bgColor.r},${b.bgColor.g},${b.bgColor.b})` : 'transparent';
-        const border = b.borderColor ? `2px solid rgb(${b.borderColor.r},${b.borderColor.g},${b.borderColor.b})` : 'none';
+    if (true) {
+        const fg = b.textColor ? `rgb(${b.textColor.r},${b.textColor.g},${b.textColor.b})` : 'rgb(200,200,200)';
+        const bg = b.bgColor ? `rgb(${b.bgColor.r},${b.bgColor.g},${b.bgColor.b})` : 'rgb(30,30,30)';
+        const border = b.borderColor ? `2px solid rgb(${b.borderColor.r},${b.borderColor.g},${b.borderColor.b})` : '2px solid rgb(80,80,80)';
         preview = `<span class="preview" style="color:${fg};background:${bg};border:${border}">${esc(name)}</span>`;
     }
     // MinimapIcon: "0 Red Circle" → icon_CircleRed.png
@@ -369,7 +418,44 @@ function baseCss(density) {
       background: var(--vscode-sideBar-background);
       padding: 0;
       margin: 0;
+      overflow: hidden;
+      height: 100vh;
     }
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      padding: 6px 8px 0;
+      background: var(--vscode-sideBar-background);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 6px 4px;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--vscode-descriptionForeground);
+      background: var(--vscode-list-hoverBackground);
+      border-radius: 6px 6px 0 0;
+      border: 1px solid transparent;
+      border-bottom: none;
+      user-select: none;
+      transition: background 0.15s, color 0.15s;
+    }
+    .tab:hover {
+      color: var(--vscode-foreground);
+      background: var(--vscode-list-inactiveSelectionBackground);
+    }
+    .tab.active {
+      color: var(--vscode-foreground);
+      background: var(--vscode-editor-background);
+      border-color: var(--vscode-panel-border);
+      font-weight: 600;
+    }
+    .tab-content { height: calc(100vh - 32px); overflow: hidden; }
+    #content { height: calc(100vh - 62px); overflow-y: auto; }
     .search-wrap {
       position: sticky;
       top: 0;
@@ -382,6 +468,36 @@ function baseCss(density) {
       color: var(--vscode-descriptionForeground);
       text-align: center;
       font-size: 12px;
+    }
+    .section-title {
+      font-weight: 600;
+      font-size: 12px;
+      padding: 10px 12px 4px;
+      color: var(--vscode-foreground);
+    }
+    .sound-mode-current {
+      font-size: 12px;
+      padding: 4px 12px 8px;
+      color: var(--vscode-descriptionForeground);
+    }
+    .sound-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 0 12px;
+    }
+    .sound-btn {
+      padding: 8px 12px;
+      border: 1px solid var(--vscode-button-border);
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      text-align: center;
+      cursor: pointer;
+      font-size: 12px;
+      border-radius: 3px;
+    }
+    .sound-btn:hover {
+      background: var(--vscode-button-hoverBackground);
     }
     .search {
       width: 100%;
@@ -399,18 +515,19 @@ function baseCss(density) {
     .search::placeholder {
       color: var(--vscode-input-placeholderForeground);
     }
-    .tree { }
-    .flat-list { }
+    .tree, .flat-list { }
     .split-layout {
       display: flex;
       height: 100%;
+      overflow: hidden;
     }
     .cat-tabs {
       width: 80px;
       min-width: 80px;
       border-right: 1px solid var(--vscode-panel-border);
-      overflow-y: auto;
       flex-shrink: 0;
+      overflow-y: auto;
+      height: 100%;
     }
     .cat-tab {
       padding: 6px 4px;
@@ -449,6 +566,7 @@ function baseCss(density) {
     .cat-content {
       flex: 1;
       overflow-y: auto;
+      height: 100%;
     }
     .cat-panel { }
     .section { }
@@ -540,7 +658,7 @@ function baseCss(density) {
   `;
 }
 // ── JS ─────────────────────────────────────────────────────────────────
-function searchScript() {
+function panelScript() {
     return `
     const vscode = acquireVsCodeApi();
 
@@ -548,11 +666,23 @@ function searchScript() {
       vscode.postMessage({ type: 'goToBlock', line });
     }
 
+    function saveState() {
+      const openSections = [];
+      document.querySelectorAll('.section-header.open').forEach(h => {
+        const idx = Array.from(document.querySelectorAll('.section-header')).indexOf(h);
+        if (idx >= 0) openSections.push(idx);
+      });
+      const content = document.getElementById('tab-editor');
+      const scrollTop = content ? content.scrollTop : 0;
+      vscode.setState({ ...(vscode.getState() || {}), openSections, scrollTop });
+    }
+
     function toggleSection(el) {
       const body = el.nextElementSibling;
       if (body) {
         body.classList.toggle('open');
         el.classList.toggle('open');
+        saveState();
       }
     }
 
@@ -564,33 +694,71 @@ function searchScript() {
       if (panel) panel.style.display = 'block';
     }
 
-    document.getElementById('search').addEventListener('input', function() {
-      const q = this.value.toLowerCase().trim();
-      // Search: show all panels
-      if (q.length > 0) {
-        document.querySelectorAll('.cat-panel').forEach(p => p.style.display = 'block');
-      } else {
-        // Restore: only show active panel
-        document.querySelectorAll('.cat-panel').forEach(p => p.style.display = 'none');
-        const active = document.querySelector('.cat-tab.active');
-        if (active) {
-          const panel = document.getElementById('panel-' + active.getAttribute('data-cat'));
-          if (panel) panel.style.display = 'block';
+    function switchTab(id) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector('.tab[data-tab="' + id + '"]').classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+      document.getElementById('tab-' + id).style.display = 'block';
+      vscode.setState({ ...(vscode.getState() || {}), activeTab: id });
+    }
+
+    function toggleSound() {
+      vscode.postMessage({ type: 'toggleSound' });
+    }
+
+    function runCmd(cmd) {
+      vscode.postMessage({ type: 'runCmd', cmd });
+    }
+
+    // Restore state
+    const saved = vscode.getState();
+    if (saved && saved.activeTab) {
+      switchTab(saved.activeTab);
+    }
+    if (saved && saved.openSections) {
+      const headers = document.querySelectorAll('.section-header');
+      saved.openSections.forEach(idx => {
+        const h = headers[idx];
+        if (h) {
+          h.classList.add('open');
+          const body = h.nextElementSibling;
+          if (body) body.classList.add('open');
         }
-      }
-      document.querySelectorAll('.block').forEach(b => {
-        const name = (b.getAttribute('data-name') || '').toLowerCase();
-        const text = b.textContent.toLowerCase();
-        b.classList.toggle('hidden', q.length > 0 && !name.includes(q) && !text.includes(q));
       });
-      document.querySelectorAll('.section-body').forEach(body => {
-        const hasVisible = body.querySelector('.block:not(.hidden)');
-        if (q.length > 0 && hasVisible) {
-          body.classList.add('open');
-          body.previousElementSibling.classList.add('open');
+    }
+    if (saved && saved.scrollTop) {
+      const content = document.getElementById('tab-editor');
+      if (content) content.scrollTop = saved.scrollTop;
+    }
+
+    const searchEl = document.getElementById('search');
+    if (searchEl) {
+      searchEl.addEventListener('input', function() {
+        const q = this.value.toLowerCase().trim();
+        if (q.length > 0) {
+          document.querySelectorAll('.cat-panel').forEach(p => p.style.display = 'block');
+        } else {
+          document.querySelectorAll('.cat-panel').forEach(p => p.style.display = 'none');
+          const active = document.querySelector('.cat-tab.active');
+          if (active) {
+            const panel = document.getElementById('panel-' + active.getAttribute('data-cat'));
+            if (panel) panel.style.display = 'block';
+          }
         }
+        document.querySelectorAll('.block').forEach(b => {
+          const name = (b.getAttribute('data-name') || '').toLowerCase();
+          const text = b.textContent.toLowerCase();
+          b.classList.toggle('hidden', q.length > 0 && !name.includes(q) && !text.includes(q));
+        });
+        document.querySelectorAll('.section-body').forEach(body => {
+          const hasVisible = body.querySelector('.block:not(.hidden)');
+          if (q.length > 0 && hasVisible) {
+            body.classList.add('open');
+            body.previousElementSibling.classList.add('open');
+          }
+        });
       });
-    });
+    }
   `;
 }
 // ── Util ───────────────────────────────────────────────────────────────

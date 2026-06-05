@@ -2,7 +2,7 @@
   "name": "poe-filter-best",
   "displayName": "POE Filter Best",
   "description": "Path of Exile loot filter file support — syntax highlighting, formatting, smart editing, completion, diagnostics, and hover",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publisher": "JMY-2068",
   "license": "MIT",
   "icon": "icon.png",
@@ -111,6 +111,14 @@
       {
         "command": "poe-filter-best._codeLensAction",
         "title": "POE Filter: CodeLens Action (internal)"
+      },
+      {
+        "command": "poe-filter-best.toggleSoundMode",
+        "title": "POE Filter: Toggle Sound Mode",
+        "icon": {
+          "light": "resources/icons/sound-light.svg",
+          "dark": "resources/icons/sound-dark.svg"
+        }
       }
     ],
     "keybindings": [
@@ -159,6 +167,13 @@
       ]
     },
     "menus": {
+      "editor/title": [
+        {
+          "command": "poe-filter-best.toggleSoundMode",
+          "when": "editorLangId == poe-filter",
+          "group": "navigation"
+        }
+      ],
       "editor/context": [
         {
           "command": "poe-filter-best.toggleBlock",

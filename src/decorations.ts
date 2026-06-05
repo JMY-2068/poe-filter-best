@@ -106,8 +106,28 @@ export class PoeFilterDecorationProvider {
     for (let i = 0; i < doc.lineCount; i++) {
       const trimmed = doc.lineAt(i).text.trim();
 
-      if (trimmed === '' || trimmed.startsWith('#')) continue;
+      if (trimmed === '') continue;
 
+      // Disabled block header: "# Show ..." or "# Hide ..."
+      const disMatch = trimmed.match(/^#\s+(Show|Hide)\b/i);
+      if (disMatch) {
+        finishBlock(i - 1);
+        current = {
+          start: i,
+          end: i,
+          type: disMatch[1].toLowerCase() as 'show' | 'hide',
+          textR: 200, textG: 200, textB: 200,
+          bgR: 30, bgG: 30, bgB: 30,
+          borderR: 80, borderG: 80, borderB: 80,
+          iconShape: '',
+        };
+        continue;
+      }
+
+      // Skip other comment lines outside blocks
+      if (trimmed.startsWith('#') && !current) continue;
+
+      // Active block header
       const headerMatch = trimmed.match(/^(Show|Hide)\b/i);
       if (headerMatch) {
         finishBlock(i - 1);
@@ -124,7 +144,12 @@ export class PoeFilterDecorationProvider {
       }
 
       if (current) {
-        const content = this.stripComment(trimmed);
+        // For disabled blocks, strip "# " prefix first
+        let content = trimmed;
+        if (content.startsWith('#')) {
+          content = content.replace(/^#\s+/, '');
+        }
+        content = this.stripComment(content);
         if (!content) continue;
 
         this.parseColor(content, 'SetTextColor', (r, g, b) => {
