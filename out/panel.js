@@ -44,6 +44,21 @@ class PoeFilterPanel {
             else if (msg.type === 'runCmd' && msg.cmd) {
                 vscode.commands.executeCommand(msg.cmd);
             }
+            else if (msg.type === 'toggleBlock' && typeof msg.line === 'number' && msg.state) {
+                const editor = vscode.window.activeTextEditor;
+                if (editor) {
+                    const pos = new vscode.Position(msg.line, 0);
+                    editor.selection = new vscode.Selection(pos, pos);
+                    editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.AtTop);
+                    const cmdMap = {
+                        'show-custom': 'poe-filter-best.showBlockCustom',
+                        'show-system': 'poe-filter-best.showBlockSystem',
+                        'hide': 'poe-filter-best.hideBlock',
+                        'disabled': 'poe-filter-best.disableBlock',
+                    };
+                    vscode.commands.executeCommand(cmdMap[msg.state]);
+                }
+            }
             else if (msg.type === 'openFile' && msg.path) {
                 const doc = await vscode.workspace.openTextDocument(msg.path);
                 await vscode.window.showTextDocument(doc);
@@ -141,6 +156,8 @@ class PoeFilterPanel {
         let fontSize = null;
         let minimapIcon = '';
         let playEffect = '';
+        let hasCustomActive = false;
+        let hasSystemActive = false;
         const SUMMARY_KW = ['Class', 'BaseType', 'Rarity', 'ItemLevel', 'MapTier', 'WaystoneTier'];
         const flush = (endLine) => {
             if (blockStart < 0)
@@ -148,8 +165,21 @@ class PoeFilterPanel {
             let end = endLine;
             while (end > blockStart && document.lineAt(end).text.trim() === '')
                 end--;
+            let state;
+            if (blockDisabled) {
+                state = 'disabled';
+            }
+            else if (blockType === 'Hide') {
+                state = 'hide';
+            }
+            else if (hasSystemActive && !hasCustomActive) {
+                state = 'show-system';
+            }
+            else {
+                state = 'show-custom';
+            }
             blocks.push({
-                startLine: blockStart, endLine: end, blockType, disabled: blockDisabled,
+                startLine: blockStart, endLine: end, blockType, disabled: blockDisabled, state,
                 comment: blockComment, summary: [...blockSummary],
                 textColor, bgColor, borderColor, fontSize, minimapIcon, playEffect,
             });
@@ -158,6 +188,8 @@ class PoeFilterPanel {
             fontSize = null;
             minimapIcon = '';
             playEffect = '';
+            hasCustomActive = false;
+            hasSystemActive = false;
         };
         for (let i = 0; i < document.lineCount; i++) {
             const text = document.lineAt(i).text;
@@ -236,6 +268,13 @@ class PoeFilterPanel {
                 if (em) {
                     playEffect = em[1].trim();
                     continue;
+                }
+                // Track sound state (only active, non-commented lines)
+                if (!blockDisabled && !trimmed.startsWith('#')) {
+                    if (/^CustomAlertSound\b/i.test(content))
+                        hasCustomActive = true;
+                    if (/^PlayAlertSound\b/i.test(content))
+                        hasSystemActive = true;
                 }
             }
         }
@@ -493,10 +532,19 @@ function renderBlock(b, sep, depth = 0, webview, extPath) {
     const icons = (iconImg || crossImg)
         ? `<span class="block-icons">${iconImg}${crossImg}</span>`
         : '';
+    // State toggle buttons
+    const states = [
+        { key: 'show-custom', icon: '🎵', title: '自定义音效' },
+        { key: 'show-system', icon: '🔊', title: '系统音效' },
+        { key: 'hide', icon: '⊘', title: '隐藏' },
+        { key: 'disabled', icon: '🚫', title: '禁用' },
+    ];
+    const stateBtns = states.map(s => `<span class="state-btn${b.state === s.key ? ' active' : ''}" onclick="event.stopPropagation();toggleBlock(${b.startLine},'${s.key}')" title="${s.title}">${s.icon}</span>`).join('');
     return `<div class="block ${typeClass}" data-line="${b.startLine}" data-name="${esc(b.comment || name).toLowerCase()}" onclick="goTo(${b.startLine})" style="padding-left:${depth * 16 + 8}px">
     <span class="type-icon">${typeIcon}</span>
     ${preview}
     ${icons}
+    <span class="state-btns">${stateBtns}</span>
   </div>`;
 }
 function esc(s) {
@@ -820,6 +868,35 @@ function baseCss(density) {
       height: ${iconSize};
       object-fit: contain;
     }
+    .state-btns {
+      display: none;
+      align-items: center;
+      gap: 2px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .block:hover .state-btns {
+      display: flex;
+    }
+    .block:hover .block-icons {
+      display: none;
+    }
+    .state-btn {
+      font-size: 12px;
+      padding: 1px 3px;
+      border-radius: 3px;
+      cursor: pointer;
+      opacity: 0.4;
+      user-select: none;
+    }
+    .state-btn:hover {
+      opacity: 0.8;
+      background: var(--vscode-toolbar-hoverBackground);
+    }
+    .state-btn.active {
+      opacity: 1;
+      background: var(--vscode-button-background);
+    }
   `;
 }
 // ── JS ─────────────────────────────────────────────────────────────────
@@ -885,6 +962,10 @@ function panelScript() {
 
     function deleteFile(p) {
       vscode.postMessage({ type: 'deleteFile', path: p });
+    }
+
+    function toggleBlock(line, state) {
+      vscode.postMessage({ type: 'toggleBlock', line: line, state: state });
     }
 
     // Restore state
