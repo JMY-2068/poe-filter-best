@@ -598,9 +598,24 @@ interface SectionNode {
   blocks: PanelBlock[];
 }
 
+const CAT_FILE_MAP: Record<string, string> = {
+  '通货': 'currency',
+  '命运卡': 'divination-card',
+  '装备': 'equipment',
+  '药剂': 'flask',
+  '技能石': 'gem',
+  '全局设置': 'global',
+  '珠宝': 'jewel',
+  '地图': 'map',
+  '地图碎片': 'map-fragment',
+  '杂项': 'misc',
+  '传奇装备': 'unique',
+};
+
 function catImgUrl(catName: string, webview: vscode.Webview, extPath: string): string | null {
-  const imgPath = path.join(extPath, 'resources', 'cats', `${catName}.webp`);
-  // Check if file exists is tricky in webview context; just build URI
+  const fileName = CAT_FILE_MAP[catName] || catName;
+  const imgPath = path.join(extPath, 'resources', 'cats', `${fileName}.webp`);
+  if (!fs.existsSync(imgPath)) return null;
   const uri = vscode.Uri.file(imgPath);
   return webview.asWebviewUri(uri).toString();
 }
