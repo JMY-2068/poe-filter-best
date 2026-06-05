@@ -265,11 +265,42 @@ CustomAlertSound 行上方显示 `🔊 试听` 按钮（仅当音效文件存在
 - **过滤编辑** — 分类树 + Block 预览 + 搜索
 - **全局操作** — 音效切换、字体调整、光柱开关
 - **我的过滤** — 文件管理（v8 新增）
+- **批量改色** — 配色分组 + 批量修改（v9 新增）
 
 **资源文件：**
 - `resources/cats/*.webp` — 1 级分类图片（通货、装备、地图等）
 - `resources/drop/icon_{Shape}{Color}.png` — MinimapIcon 掉落图标
 - `resources/cross/cross-{Color}.svg` — PlayEffect 光柱图标
+
+### 25. 批量改色 / Batch Color（v9 新增）
+
+左侧面板「批量改色」tab 按配色组合批量修改过滤块颜色：
+
+**分组逻辑：**
+- 按文字色 + 背景色 + 边框色（含透明度 alpha 0-255）组合自动分组
+- 仅分组活跃（非禁用）过滤块
+- 按颜色丰富度 + 数量排序
+
+**效果预览：**
+- 每组显示实际配色的预览色块
+- 显示「XX 个过滤块」数量
+
+**预览按钮：**
+- 弹出匹配过滤块列表（显示 Show/Hide 后的注释名）
+- 点击过滤块跳转到编辑器对应行，弹窗不关闭
+
+**改色按钮：**
+- 颜色选择器（`<input type="color">` + 透明度 range slider 0-255）
+- 应用后通过 WorkspaceEdit 批量替换 SetTextColor / SetBackgroundColor / SetBorderColor 行
+- 仅更新活跃块，跳过已禁用块
+- 更新完成后自动刷新面板
+
+**弹窗交互：**
+- 点击弹窗外部区域可关闭
+
+### 26. 快速设置 / Quick Settings（v9 新增）
+
+tab 栏右侧 ⚙️ 按钮，点击直接打开 VSCode 设置页并定位到 `poe-filter-best` 扩展配置。
 
 ## 安装
 
@@ -344,3 +375,4 @@ poe-filter-best/
 - **0.6.0** — 新增：BaseType 链接 POE1/POE2 自动判断、状态栏信息、大纲 inline 注释分组、Block Explorer Webview 面板（分类图片 + 图标/光柱预览 + 搜索 + 三档密度）
 - **0.7.0** — 新增：Title bar 音效切换图标、音效切换逻辑（CustomAlertSound ↔ PlayAlertSound）、面板三 tab 重构、全局操作 tab（音效/字体/光柱）、分栏独立滚动、禁用块预览修复、Block 定位 AtTop
 - **0.8.0** — 新增：我的过滤 tab — 自动扫描 POE1/POE2 游戏目录 .filter 文件、按游戏分组展示（流放之路 / 流放之路 降临）、文件信息显示、点击打开、删除确认、刷新扫描
+- **0.9.0** — 新增：批量改色 tab — 配色组合分组、效果预览、预览过滤块列表跳转、颜色选择器（RGB+透明度）批量更新；设置按钮快速打开扩展设置；颜色透明度全链路支持

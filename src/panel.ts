@@ -15,7 +15,7 @@ import * as os from 'os';
 
 // ── Block data ────────────────────────────────────────────────────────
 
-interface ColorRGB { r: number; g: number; b: number; }
+interface ColorRGB { r: number; g: number; b: number; a?: number; }
 
 interface PanelBlock {
   startLine: number;
@@ -132,6 +132,10 @@ export class PoeFilterPanel implements vscode.WebviewViewProvider {
             vscode.window.showErrorMessage(`删除失败: ${(e as Error).message}`);
           }
         }
+      } else if (msg.type === 'batchColor' && msg.groupKey) {
+        this.handleBatchColor(msg);
+      } else if (msg.type === 'openSettings') {
+        vscode.commands.executeCommand('workbench.action.openSettings', 'poe-filter-best');
       }
     });
 
@@ -295,12 +299,12 @@ export class PoeFilterPanel implements vscode.WebviewViewProvider {
           if (after) blockSummary.push(`${kw} ${after}`);
         }
 
-        const cm = content.match(/^SetTextColor\s+(\d+)\s+(\d+)\s+(\d+)/i);
-        if (cm) { textColor = { r: +cm[1], g: +cm[2], b: +cm[3] }; continue; }
-        const bm = content.match(/^SetBackgroundColor\s+(\d+)\s+(\d+)\s+(\d+)/i);
-        if (bm) { bgColor = { r: +bm[1], g: +bm[2], b: +bm[3] }; continue; }
-        const brm = content.match(/^SetBorderColor\s+(\d+)\s+(\d+)\s+(\d+)/i);
-        if (brm) { borderColor = { r: +brm[1], g: +brm[2], b: +brm[3] }; continue; }
+        const cm = content.match(/^SetTextColor\s+(\d+)\s+(\d+)\s+(\d+)(?:\s+(\d+))?/i);
+        if (cm) { textColor = { r: +cm[1], g: +cm[2], b: +cm[3], a: cm[4] ? +cm[4] : undefined }; continue; }
+        const bm = content.match(/^SetBackgroundColor\s+(\d+)\s+(\d+)\s+(\d+)(?:\s+(\d+))?/i);
+        if (bm) { bgColor = { r: +bm[1], g: +bm[2], b: +bm[3], a: bm[4] ? +bm[4] : undefined }; continue; }
+        const brm = content.match(/^SetBorderColor\s+(\d+)\s+(\d+)\s+(\d+)(?:\s+(\d+))?/i);
+        if (brm) { borderColor = { r: +brm[1], g: +brm[2], b: +brm[3], a: brm[4] ? +brm[4] : undefined }; continue; }
         const fm = content.match(/^SetFontSize\s+(\d+)/i);
         if (fm) { fontSize = +fm[1]; continue; }
         const im = content.match(/^MinimapIcon\s+(.+)/i);
@@ -351,6 +355,8 @@ export class PoeFilterPanel implements vscode.WebviewViewProvider {
           <div class="tab active" data-tab="editor" onclick="switchTab('editor')">过滤编辑</div>
           <div class="tab" data-tab="global" onclick="switchTab('global')">全局操作</div>
           <div class="tab" data-tab="myfilter" onclick="switchTab('myfilter')">我的过滤</div>
+          <div class="tab" data-tab="batchcolor" onclick="switchTab('batchcolor')">🎨 批量改色</div>
+          <div class="tab-settings" onclick="openSettings()" title="扩展设置">⚙️</div>
         </div>
         <div class="tab-content" id="tab-editor">
           <div class="search-wrap">
@@ -376,6 +382,9 @@ export class PoeFilterPanel implements vscode.WebviewViewProvider {
         </div>
         <div class="tab-content" id="tab-myfilter" style="display:none">
           ${this.renderMyFilterHtml()}
+        </div>
+        <div class="tab-content" id="tab-batchcolor" style="display:none;overflow-y:auto">
+          ${this.renderBatchColorHtml(blocks)}
         </div>
         <script>${panelScript()}</script>
       </body></html>`;
@@ -419,6 +428,155 @@ export class PoeFilterPanel implements vscode.WebviewViewProvider {
         <span class="file-btn file-btn-danger" onclick="deleteFile(this.closest('.file-item').dataset.path)" title="删除">🗑</span>
       </div>
     </div>`;
+  }
+
+  private renderBatchColorHtml(blocks: PanelBlock[]): string {
+    // Only active (non-disabled) blocks with at least one color
+    const active = blocks.filter(b => !b.disabled);
+    if (active.length === 0) {
+      return `<div class="empty">没有活跃的 Block</div>`;
+    }
+
+    // Group by textColor;bgColor;borderColor key
+    const groups = new Map<string, { text: ColorRGB | null; bg: ColorRGB | null; border: ColorRGB | null; count: number; blocks: PanelBlock[] }>();
+    for (const b of active) {
+      const key = colorKey(b.textColor, b.bgColor, b.borderColor);
+      if (!groups.has(key)) {
+        groups.set(key, { text: b.textColor, bg: b.bgColor, border: b.borderColor, count: 0, blocks: [] });
+      }
+      const g = groups.get(key)!;
+      g.count++;
+      g.blocks.push(b);
+    }
+
+    // Sort: groups with more colors first, then by count desc
+    const sorted = [...groups.entries()].sort((a, b) => {
+      const ca = (a[1].text ? 1 : 0) + (a[1].bg ? 1 : 0) + (a[1].border ? 1 : 0);
+      const cb = (b[1].text ? 1 : 0) + (b[1].bg ? 1 : 0) + (b[1].border ? 1 : 0);
+      if (cb !== ca) return cb - ca;
+      return b[1].count - a[1].count;
+    });
+
+    // Embed block data for preview (only active blocks with colors)
+    const blockData = active.filter(b => b.textColor || b.bgColor || b.borderColor).map(b => ({
+      key: colorKey(b.textColor, b.bgColor, b.borderColor),
+      line: b.startLine,
+      comment: b.comment || b.blockType,
+      summary: b.summary.slice(0, 2).join(', '),
+    }));
+    let html = `<div id="batch-block-data" style="display:none">${esc(JSON.stringify(blockData))}</div>`;
+    html += `<div class="batch-color-header">共 ${sorted.length} 种配色组合</div>`;
+    for (const [key, g] of sorted) {
+      const ta = g.text?.a !== undefined ? g.text.a / 255 : 1;
+      const ba = g.bg?.a !== undefined ? g.bg.a / 255 : 1;
+      const ra = g.border?.a !== undefined ? g.border.a / 255 : 1;
+      const tc = g.text ? `rgba(${g.text.r},${g.text.g},${g.text.b},${ta})` : 'rgb(200,200,200)';
+      const bc = g.bg ? `rgba(${g.bg.r},${g.bg.g},${g.bg.b},${ba})` : 'rgb(30,30,30)';
+      const rc = g.border ? `rgba(${g.border.r},${g.border.g},${g.border.b},${ra})` : 'rgb(80,80,80)';
+      const ek = esc(key);
+      html += `<div class="color-group">
+        <div class="color-swatch" style="color:${tc};background:${bc};border:2px solid ${rc};font-size:13px;font-weight:bold;line-height:40px;text-align:center;width:80px;height:40px;border-radius:4px">效果预览</div>
+        <div class="color-info">
+          <div class="color-count">${g.count} 个过滤块</div>
+        </div>
+        <div class="color-actions">
+          <div class="color-btn" onclick="previewColorGroup('${ek}')">预览</div>
+          <div class="color-btn color-btn-primary" onclick="openColorPicker('${ek}')">改色</div>
+        </div>
+      </div>`;
+    }
+
+    html += `
+    <div id="color-picker-modal" class="cp-modal" style="display:none">
+      <div class="cp-content">
+        <div class="cp-title">选择新颜色</div>
+        <input type="hidden" id="cp-group-key" />
+        <div class="cp-row"><label>文字色</label><input type="color" id="cp-text" /><span class="cp-alpha-label">透明度</span><input type="range" min="0" max="255" value="255" class="cp-alpha" id="cp-text-a" /><span class="cp-alpha-val" id="cp-text-a-val">255</span></div>
+        <div class="cp-row"><label>背景色</label><input type="color" id="cp-bg" /><span class="cp-alpha-label">透明度</span><input type="range" min="0" max="255" value="255" class="cp-alpha" id="cp-bg-a" /><span class="cp-alpha-val" id="cp-bg-a-val">255</span></div>
+        <div class="cp-row"><label>边框色</label><input type="color" id="cp-border" /><span class="cp-alpha-label">透明度</span><input type="range" min="0" max="255" value="255" class="cp-alpha" id="cp-border-a" /><span class="cp-alpha-val" id="cp-border-a-val">255</span></div>
+        <div class="cp-actions">
+          <div class="sound-btn" onclick="applyBatchColor()">应用</div>
+          <div class="sound-btn" style="background:var(--vscode-button-secondaryBackground)" onclick="closeColorPicker()">取消</div>
+        </div>
+      </div>
+    </div>
+    <div id="preview-modal" class="cp-modal" style="display:none">
+      <div class="cp-content" style="max-height:80vh;overflow-y:auto;min-width:300px">
+        <div class="cp-title">匹配的过滤块</div>
+        <div id="preview-list"></div>
+        <div class="cp-actions" style="margin-top:8px">
+          <div class="sound-btn" style="background:var(--vscode-button-secondaryBackground)" onclick="closePreviewModal()">关闭</div>
+        </div>
+      </div>
+    </div>`;
+
+    return html;
+  }
+
+  private handleBatchColor(msg: any): void {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) return;
+    const doc = editor.document;
+    const key = msg.groupKey as string;
+
+    // Parse the old group key: "r,g,b;r,g,b;r,g,b"
+    const parts = key.split(';');
+    const oldText = parseColorPart(parts[0]);
+    const oldBg = parseColorPart(parts[1]);
+    const oldBorder = parseColorPart(parts[2]);
+
+    const newText = msg.newTextR !== undefined ? { r: msg.newTextR, g: msg.newTextG, b: msg.newTextB, a: msg.newTextA as number | undefined } : null;
+    const newBg = msg.newBgR !== undefined ? { r: msg.newBgR, g: msg.newBgG, b: msg.newBgB, a: msg.newBgA as number | undefined } : null;
+    const newBorder = msg.newBorderR !== undefined ? { r: msg.newBorderR, g: msg.newBorderG, b: msg.newBorderB, a: msg.newBorderA as number | undefined } : null;
+
+    const fmtColor = (r: number, g: number, b: number, a?: number) =>
+      a !== undefined && a !== 255 ? `${r} ${g} ${b} ${a}` : `${r} ${g} ${b}`;
+
+    const edit = new vscode.WorkspaceEdit();
+    let count = 0;
+
+    // Re-parse blocks to find matching lines
+    const blocks = this.parseBlocks(doc);
+    for (const block of blocks) {
+      if (block.disabled) continue;
+      if (colorKey(block.textColor, block.bgColor, block.borderColor) !== key) continue;
+
+      // Replace color lines within this block
+      for (let i = block.startLine; i <= block.endLine; i++) {
+        const line = doc.lineAt(i).text;
+        const trimmed = line.trim();
+        const prefix = line.substring(0, line.length - line.trimStart().length);
+        const isCommented = trimmed.startsWith('#');
+        const content = isCommented ? trimmed.replace(/^#\s+/, '') : trimmed;
+
+        if (newText && oldText && /^SetTextColor\s+/i.test(content)) {
+          const newLine = `${prefix}${isCommented ? '# ' : ''}SetTextColor ${fmtColor(newText.r, newText.g, newText.b, newText.a)}`;
+          edit.replace(doc.uri, new vscode.Range(i, 0, i, line.length), newLine);
+          count++;
+        }
+        if (newBg && oldBg && /^SetBackgroundColor\s+/i.test(content)) {
+          const newLine = `${prefix}${isCommented ? '# ' : ''}SetBackgroundColor ${fmtColor(newBg.r, newBg.g, newBg.b, newBg.a)}`;
+          edit.replace(doc.uri, new vscode.Range(i, 0, i, line.length), newLine);
+          count++;
+        }
+        if (newBorder && oldBorder && /^SetBorderColor\s+/i.test(content)) {
+          const newLine = `${prefix}${isCommented ? '# ' : ''}SetBorderColor ${fmtColor(newBorder.r, newBorder.g, newBorder.b, newBorder.a)}`;
+          edit.replace(doc.uri, new vscode.Range(i, 0, i, line.length), newLine);
+          count++;
+        }
+      }
+    }
+
+    if (count > 0) {
+      vscode.workspace.applyEdit(edit).then(ok => {
+        if (ok) {
+          vscode.window.showInformationMessage(`已更新 ${count} 处颜色`);
+          this.refresh();
+        }
+      });
+    } else {
+      vscode.window.showWarningMessage('未找到匹配的 Block');
+    }
   }
 
   private detectSoundMode(doc: vscode.TextDocument): 'custom' | 'system' {
@@ -632,6 +790,20 @@ function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function colorKey(text: ColorRGB | null, bg: ColorRGB | null, border: ColorRGB | null): string {
+  const c = (v: ColorRGB | null) => v ? `${v.r},${v.g},${v.b}${v.a !== undefined ? ',' + v.a : ''}` : '-';
+  return `${c(text)};${c(bg)};${c(border)}`;
+}
+
+function parseColorPart(s: string): ColorRGB | null {
+  if (s === '-') return null;
+  const parts = s.split(',').map(Number);
+  if (parts.length >= 3 && parts.slice(0, 4).every(n => !isNaN(n))) {
+    return { r: parts[0], g: parts[1], b: parts[2], a: parts.length > 3 ? parts[3] : undefined };
+  }
+  return null;
+}
+
 // ── CSS ───────────────────────────────────────────────────────────────
 
 function baseCss(density: string): string {
@@ -687,6 +859,20 @@ function baseCss(density: string): string {
       color: var(--vscode-foreground);
       background: var(--vscode-editor-background);
       border-color: var(--vscode-panel-border);
+    }
+    .tab-settings {
+      margin-left: auto;
+      padding: 4px 8px;
+      cursor: pointer;
+      opacity: 0.7;
+      font-size: 14px;
+      line-height: 24px;
+    }
+    .tab-settings:hover {
+      opacity: 1;
+      background: var(--vscode-toolbar-hoverBackground);
+      border-radius: 3px;
+    }
       font-weight: 600;
     }
     .tab-content { height: calc(100vh - 32px); overflow: hidden; }
@@ -981,6 +1167,135 @@ function baseCss(density: string): string {
       opacity: 1;
       background: var(--vscode-button-background);
     }
+    .batch-color-header {
+      padding: 8px;
+      font-size: 12px;
+      color: var(--vscode-descriptionForeground);
+      border-bottom: 1px solid var(--vscode-panel-border);
+    }
+    .color-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--vscode-panel-border);
+    }
+    .color-group:hover {
+      background: var(--vscode-list-hoverBackground);
+    }
+    .color-swatch {
+      flex-shrink: 0;
+      border-radius: 4px;
+    }
+    .color-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .color-count {
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .color-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .color-btn {
+      padding: 3px 8px;
+      font-size: 11px;
+      border-radius: 3px;
+      cursor: pointer;
+      background: var(--vscode-button-secondaryBackground);
+      color: var(--vscode-button-secondaryForeground);
+    }
+    .color-btn:hover {
+      opacity: 0.85;
+    }
+    .color-btn-primary {
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+    }
+    .preview-item {
+      padding: 4px 0;
+      font-size: 12px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--vscode-panel-border);
+    }
+    .preview-item:hover {
+      background: var(--vscode-list-hoverBackground);
+    }
+    .preview-line {
+      color: var(--vscode-descriptionForeground);
+      font-size: 11px;
+      margin-right: 6px;
+    }
+    .preview-name {
+      color: var(--vscode-foreground);
+    }
+    .color-detail {
+      font-size: 11px;
+      margin-top: 2px;
+    }
+    .cp-modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .cp-content {
+      background: var(--vscode-sideBar-background);
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 6px;
+      padding: 16px;
+      min-width: 240px;
+    }
+    .cp-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .cp-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .cp-row label {
+      width: 50px;
+      font-size: 12px;
+    }
+    .cp-row input[type="color"] {
+      width: 40px;
+      height: 28px;
+      border: none;
+      cursor: pointer;
+      background: transparent;
+    }
+    .cp-alpha-label {
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+      margin-left: 4px;
+    }
+    .cp-alpha {
+      width: 60px;
+      height: 4px;
+      cursor: pointer;
+    }
+    .cp-alpha-val {
+      font-size: 11px;
+      width: 24px;
+      text-align: right;
+      color: var(--vscode-descriptionForeground);
+    }
+    .cp-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
   `;
 }
 
@@ -1038,6 +1353,10 @@ function panelScript(): string {
       vscode.postMessage({ type: 'runCmd', cmd });
     }
 
+    function openSettings() {
+      vscode.postMessage({ type: 'openSettings' });
+    }
+
     function refreshFiles() {
       vscode.postMessage({ type: 'refreshFiles' });
     }
@@ -1052,6 +1371,107 @@ function panelScript(): string {
 
     function toggleBlock(line, state) {
       vscode.postMessage({ type: 'toggleBlock', line: line, state: state });
+    }
+
+    function openColorPicker(groupKey) {
+      document.getElementById('cp-group-key').value = groupKey;
+      const parts = groupKey.split(';');
+      const toHex = (s) => {
+        if (s === '-') return '#000000';
+        const vals = s.split(',').map(Number);
+        return '#' + vals.slice(0,3).map(v => v.toString(16).padStart(2,'0')).join('');
+      };
+      const getAlpha = (s) => {
+        if (s === '-') return 255;
+        const vals = s.split(',');
+        return vals.length > 3 ? parseInt(vals[3]) : 255;
+      };
+      document.getElementById('cp-text').value = toHex(parts[0]);
+      document.getElementById('cp-bg').value = toHex(parts[1]);
+      document.getElementById('cp-border').value = toHex(parts[2]);
+      document.getElementById('cp-text-a').value = getAlpha(parts[0]);
+      document.getElementById('cp-bg-a').value = getAlpha(parts[1]);
+      document.getElementById('cp-border-a').value = getAlpha(parts[2]);
+      document.getElementById('cp-text-a-val').textContent = getAlpha(parts[0]);
+      document.getElementById('cp-bg-a-val').textContent = getAlpha(parts[1]);
+      document.getElementById('cp-border-a-val').textContent = getAlpha(parts[2]);
+      document.getElementById('color-picker-modal').style.display = 'flex';
+    }
+
+    function closeColorPicker() {
+      document.getElementById('color-picker-modal').style.display = 'none';
+    }
+
+    function previewColorGroup(groupKey) {
+      const data = JSON.parse(document.getElementById('batch-block-data').textContent);
+      const matched = data.filter(b => b.key === groupKey);
+      const list = document.getElementById('preview-list');
+      if (matched.length === 0) {
+        list.innerHTML = '<div style="color:var(--vscode-descriptionForeground);font-size:12px;padding:4px 0">未找到匹配的过滤块</div>';
+      } else {
+        list.innerHTML = matched.map(b => {
+          const name = b.comment || b.summary || '未命名';
+          return '<div class="preview-item" onclick="goToLine(' + b.line + ')">' +
+            '<span class="preview-name">' + name + '</span></div>';
+        }).join('');
+      }
+      document.getElementById('preview-modal').style.display = 'flex';
+    }
+
+    function closePreviewModal() {
+      document.getElementById('preview-modal').style.display = 'none';
+    }
+
+    function goToLine(line) {
+      vscode.postMessage({ type: 'goToBlock', line: line });
+    }
+
+    // Click outside modal to close
+    document.getElementById('color-picker-modal').addEventListener('click', function(e) {
+      if (e.target === this) this.style.display = 'none';
+    });
+    document.getElementById('preview-modal').addEventListener('click', function(e) {
+      if (e.target === this) this.style.display = 'none';
+    });
+
+    function hexToRgb(hex) {
+      const r = parseInt(hex.substr(1,2), 16);
+      const g = parseInt(hex.substr(3,2), 16);
+      const b = parseInt(hex.substr(5,2), 16);
+      return { r, g, b };
+    }
+
+    // Bind alpha sliders to show value
+    ['cp-text-a','cp-bg-a','cp-border-a'].forEach(id => {
+      document.getElementById(id).addEventListener('input', function() {
+        document.getElementById(id + '-val').textContent = this.value;
+      });
+    });
+
+    function applyBatchColor() {
+      const key = document.getElementById('cp-group-key').value;
+      const parts = key.split(';');
+      const msg = { type: 'batchColor', groupKey: key };
+      if (parts[0] !== '-') {
+        const { r, g, b } = hexToRgb(document.getElementById('cp-text').value);
+        const a = parseInt(document.getElementById('cp-text-a').value);
+        msg.newTextR = r; msg.newTextG = g; msg.newTextB = b;
+        if (a !== 255) msg.newTextA = a;
+      }
+      if (parts[1] !== '-') {
+        const { r, g, b } = hexToRgb(document.getElementById('cp-bg').value);
+        const a = parseInt(document.getElementById('cp-bg-a').value);
+        msg.newBgR = r; msg.newBgG = g; msg.newBgB = b;
+        if (a !== 255) msg.newBgA = a;
+      }
+      if (parts[2] !== '-') {
+        const { r, g, b } = hexToRgb(document.getElementById('cp-border').value);
+        const a = parseInt(document.getElementById('cp-border-a').value);
+        msg.newBorderR = r; msg.newBorderG = g; msg.newBorderB = b;
+        if (a !== 255) msg.newBorderA = a;
+      }
+      vscode.postMessage(msg);
+      closeColorPicker();
     }
 
     // Restore state
