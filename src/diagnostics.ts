@@ -16,6 +16,8 @@ function ensureInit() {
 
 export class PoeFilterDiagnosticsProvider {
   private collection: vscode.DiagnosticCollection;
+  private debounceTimer: ReturnType<typeof setTimeout> | undefined;
+  private pendingDoc: vscode.TextDocument | undefined;
 
   constructor(context: vscode.ExtensionContext) {
     this.collection = vscode.languages.createDiagnosticCollection('poe-filter');
@@ -24,8 +26,13 @@ export class PoeFilterDiagnosticsProvider {
     context.subscriptions.push(
       vscode.workspace.onDidOpenTextDocument(doc => this.validate(doc))
     );
+    // Debounced: typing in a large filter shouldn't reparse on every keystroke.
     context.subscriptions.push(
-      vscode.workspace.onDidChangeTextDocument(e => this.validate(e.document))
+      vscode.workspace.onDidChangeTextDocument(e => this.scheduleValidate(e.document))
+    );
+    // Immediate revalidate on save so the saved state is always correct.
+    context.subscriptions.push(
+      vscode.workspace.onDidSaveTextDocument(doc => this.validate(doc))
     );
     context.subscriptions.push(
       vscode.workspace.onDidCloseTextDocument(doc => {
@@ -40,7 +47,20 @@ export class PoeFilterDiagnosticsProvider {
     }
   }
 
+  private scheduleValidate(document: vscode.TextDocument): void {
+    if (document.languageId !== 'poe-filter') return;
+    this.pendingDoc = document;
+    if (this.debounceTimer) clearTimeout(this.debounceTimer);
+    this.debounceTimer = setTimeout(() => {
+      this.debounceTimer = undefined;
+      const doc = this.pendingDoc;
+      this.pendingDoc = undefined;
+      if (doc) this.validate(doc);
+    }, 300);
+  }
+
   dispose() {
+    if (this.debounceTimer) clearTimeout(this.debounceTimer);
     this.collection.dispose();
   }
 

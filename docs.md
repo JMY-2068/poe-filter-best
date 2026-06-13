@@ -147,13 +147,6 @@ MinimapIcon 和 PlayEffect 行上方显示可点击按钮：
 
 点击打开 QuickPick 候选列表，选中自动填入/替换参数值。颜色带 emoji 预览 + 中文名，形状带中文名。
 
-### 15. 音效试听 / Sound Preview（v5 新增）
-
-CustomAlertSound 行上方显示 `🔊 试听` 按钮（仅当音效文件存在时）：
-
-- 文件路径相对于 filter 文件目录解析
-- 点击用系统默认播放器播放音效
-
 ### 16. 格式化增强（v5 改进）
 
 - 禁用块（`# Show`/`# Hide`）识别为独立 block，块间自动加空行
@@ -323,7 +316,7 @@ poe-filter-best/
 │   ├── blockToggle.ts              # Block 状态切换 (v4)
 │   ├── codelens.ts                 # CodeLens 状态按钮 (v4)
 │   ├── documentLinks.ts            # BaseType 链接 (v5)
-│   ├── pickers.ts                  # 参数选择器 + 音效试听 (v5)
+│   ├── pickers.ts                  # 参数选择器 (v5)
 │   ├── statusBar.ts                # 状态栏信息 (v6)
 │   ├── symbols.ts                  # 大纲视图 inline 分组 (v6)
 │   └── panel.ts                    # Block Explorer Webview 面板 (v6) + 我的过滤 (v8) + 批量改色 (v9)

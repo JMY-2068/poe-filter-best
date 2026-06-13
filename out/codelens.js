@@ -16,7 +16,16 @@ class PoeFilterCodeLensProvider {
     constructor(context) {
         this._onDidChangeCodeLenses = new vscode.EventEmitter();
         this.onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
-        context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(() => this._onDidChangeCodeLenses.fire()));
+        // Debounced: don't recompute all CodeLenses on every keystroke.
+        context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(() => {
+            if (this.debounceTimer)
+                clearTimeout(this.debounceTimer);
+            this.debounceTimer = setTimeout(() => this._onDidChangeCodeLenses.fire(), 300);
+        }));
+    }
+    dispose() {
+        if (this.debounceTimer)
+            clearTimeout(this.debounceTimer);
     }
     provideCodeLenses(document, _token) {
         const lenses = [];

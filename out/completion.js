@@ -3,6 +3,76 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PoeFilterCompletionProvider = void 0;
 const vscode = require("vscode");
 const data_1 = require("./data");
+// Cached: keywords are static — build the CompletionItems once, filter by prefix per call.
+let cachedKeywordItems;
+function getKeywordItems() {
+    if (cachedKeywordItems)
+        return cachedKeywordItems;
+    cachedKeywordItems = (0, data_1.getBlockBodyKeywords)().map(k => {
+        const item = new vscode.CompletionItem(k.keyword, vscode.CompletionItemKind.Property);
+        item.detail = k.description;
+        item.documentation = new vscode.MarkdownString(k.detail);
+        item.sortText = categorySort(k.category);
+        switch (k.valueType) {
+            case 'boolean':
+                item.insertText = new vscode.SnippetString(`${k.keyword} \${1|True,False|}`);
+                break;
+            case 'numeric':
+                if (k.operators && k.operators.length > 0) {
+                    item.insertText = new vscode.SnippetString(`${k.keyword} \${1|${k.operators.join(',')}|} \${2:0}`);
+                }
+                else {
+                    item.insertText = new vscode.SnippetString(`${k.keyword} \${1:0}`);
+                }
+                break;
+            case 'multi-select':
+                if (k.validValues && k.validValues.length > 0) {
+                    item.insertText = new vscode.SnippetString(`${k.keyword} \${1|${k.validValues.join(',')}|}`);
+                }
+                break;
+            case 'color':
+                item.insertText = new vscode.SnippetString(`${k.keyword} \${1:255} \${2:255} \${3:255}`);
+                break;
+            case 'icon':
+                item.insertText = new vscode.SnippetString(`MinimapIcon \${1|0,1,2|} \${2|${data_1.MINIMAP_COLORS.join(',')}|} \${3|${data_1.MINIMAP_SHAPES.join(',')}|}`);
+                break;
+            case 'effect':
+                item.insertText = new vscode.SnippetString(`PlayEffect \${1|${data_1.PLAY_EFFECT_COLORS.join(',')}|}`);
+                break;
+            case 'string-array':
+                if (k.keyword === 'Class') {
+                    item.insertText = new vscode.SnippetString(`Class "\${1|${data_1.COMMON_CLASSES.join(',')}|}"`);
+                }
+                else {
+                    item.insertText = new vscode.SnippetString(`${k.keyword} "\${1:value}"`);
+                }
+                break;
+            case 'sound':
+                item.insertText = new vscode.SnippetString(`${k.keyword} \${1:1} \${2:300}`);
+                break;
+            case 'none':
+                item.insertText = k.keyword;
+                break;
+        }
+        item.command = {
+            command: 'editor.action.triggerSuggest',
+            title: 'Suggest',
+        };
+        return item;
+    });
+    return cachedKeywordItems;
+}
+function categorySort(category) {
+    const order = {
+        'boolean-condition': '0',
+        'multi-select-condition': '1',
+        'numeric-condition': '2',
+        'array-condition': '3',
+        'mod-condition': '4',
+        'visual-action': '5',
+    };
+    return order[category] ?? '9';
+}
 class PoeFilterCompletionProvider {
     provideCompletionItems(document, position, _token, _context) {
         const line = document.lineAt(position).text;
@@ -58,60 +128,7 @@ class PoeFilterCompletionProvider {
     }
     getKeywordCompletions(prefix) {
         const lower = prefix.toLowerCase();
-        return (0, data_1.getBlockBodyKeywords)()
-            .filter(k => k.keyword.toLowerCase().startsWith(lower))
-            .map(k => {
-            const item = new vscode.CompletionItem(k.keyword, vscode.CompletionItemKind.Property);
-            item.detail = k.description;
-            item.documentation = new vscode.MarkdownString(k.detail);
-            item.sortText = this.getCategorySort(k.category);
-            switch (k.valueType) {
-                case 'boolean':
-                    item.insertText = new vscode.SnippetString(`${k.keyword} \${1|True,False|}`);
-                    break;
-                case 'numeric':
-                    if (k.operators && k.operators.length > 0) {
-                        item.insertText = new vscode.SnippetString(`${k.keyword} \${1|${k.operators.join(',')}|} \${2:0}`);
-                    }
-                    else {
-                        item.insertText = new vscode.SnippetString(`${k.keyword} \${1:0}`);
-                    }
-                    break;
-                case 'multi-select':
-                    if (k.validValues && k.validValues.length > 0) {
-                        item.insertText = new vscode.SnippetString(`${k.keyword} \${1|${k.validValues.join(',')}|}`);
-                    }
-                    break;
-                case 'color':
-                    item.insertText = new vscode.SnippetString(`${k.keyword} \${1:255} \${2:255} \${3:255}`);
-                    break;
-                case 'icon':
-                    item.insertText = new vscode.SnippetString(`MinimapIcon \${1|0,1,2|} \${2|${data_1.MINIMAP_COLORS.join(',')}|} \${3|${data_1.MINIMAP_SHAPES.join(',')}|}`);
-                    break;
-                case 'effect':
-                    item.insertText = new vscode.SnippetString(`PlayEffect \${1|${data_1.PLAY_EFFECT_COLORS.join(',')}|}`);
-                    break;
-                case 'string-array':
-                    if (k.keyword === 'Class') {
-                        item.insertText = new vscode.SnippetString(`Class "\${1|${data_1.COMMON_CLASSES.join(',')}|}"`);
-                    }
-                    else {
-                        item.insertText = new vscode.SnippetString(`${k.keyword} "\${1:value}"`);
-                    }
-                    break;
-                case 'sound':
-                    item.insertText = new vscode.SnippetString(`${k.keyword} \${1:1} \${2:300}`);
-                    break;
-                case 'none':
-                    item.insertText = k.keyword;
-                    break;
-            }
-            item.command = {
-                command: 'editor.action.triggerSuggest',
-                title: 'Suggest',
-            };
-            return item;
-        });
+        return getKeywordItems().filter(it => it.label.toLowerCase().startsWith(lower));
     }
     getValueCompletions(keyword, valuePart) {
         const def = (0, data_1.getKeywordDef)(keyword);
@@ -192,17 +209,6 @@ class PoeFilterCompletionProvider {
             });
         }
         return undefined;
-    }
-    getCategorySort(category) {
-        const order = {
-            'boolean-condition': '0',
-            'multi-select-condition': '1',
-            'numeric-condition': '2',
-            'array-condition': '3',
-            'mod-condition': '4',
-            'visual-action': '5',
-        };
-        return order[category] ?? '9';
     }
 }
 exports.PoeFilterCompletionProvider = PoeFilterCompletionProvider;

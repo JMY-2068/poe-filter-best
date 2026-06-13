@@ -124,10 +124,10 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   // Scrollbar decorations (green=Show, red=Hide)
-  new PoeFilterDecorationProvider(context);
+  context.subscriptions.push(new PoeFilterDecorationProvider(context));
 
   // Status bar: POE version + block count
-  new PoeFilterStatusBar(context);
+  context.subscriptions.push(new PoeFilterStatusBar(context));
 
   // Webview panel: block explorer with color preview
   const panel = new PoeFilterPanel(context);
@@ -149,13 +149,15 @@ export function activate(context: vscode.ExtensionContext): void {
   // QuickPick pickers: MinimapIcon / PlayEffect parameter selection
   const pickerProvider = new PoeFilterPickerProvider(context);
   context.subscriptions.push(
-    vscode.languages.registerCodeLensProvider(LANG_SELECTOR, pickerProvider)
+    vscode.languages.registerCodeLensProvider(LANG_SELECTOR, pickerProvider),
+    pickerProvider
   );
 
   // CodeLens: state buttons above each block
   const codeLensProvider = new PoeFilterCodeLensProvider(context);
   context.subscriptions.push(
-    vscode.languages.registerCodeLensProvider(LANG_SELECTOR, codeLensProvider)
+    vscode.languages.registerCodeLensProvider(LANG_SELECTOR, codeLensProvider),
+    codeLensProvider
   );
 
   // Internal command: CodeLens click → move cursor + trigger block command

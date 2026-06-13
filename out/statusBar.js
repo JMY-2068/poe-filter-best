@@ -16,14 +16,31 @@ class PoeFilterStatusBar {
         context.subscriptions.push(this.blockItem);
         // Update on active editor change
         context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => this.update(editor)));
-        // Update on text change
+        // Debounced: avoid getText() + full line scan on every keystroke.
         context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(e => {
-            if (vscode.window.activeTextEditor?.document === e.document) {
-                this.update(vscode.window.activeTextEditor);
+            const editor = vscode.window.activeTextEditor;
+            if (editor && editor.document === e.document) {
+                this.scheduleUpdate(editor);
             }
         }));
         // Initial
         this.update(vscode.window.activeTextEditor);
+    }
+    scheduleUpdate(editor) {
+        this.pendingEditor = editor;
+        if (this.debounceTimer)
+            clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(() => {
+            this.debounceTimer = undefined;
+            const ed = this.pendingEditor;
+            this.pendingEditor = undefined;
+            if (ed)
+                this.update(ed);
+        }, 300);
+    }
+    dispose() {
+        if (this.debounceTimer)
+            clearTimeout(this.debounceTimer);
     }
     update(editor) {
         if (!editor || editor.document.languageId !== 'poe-filter') {

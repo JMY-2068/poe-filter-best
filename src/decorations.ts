@@ -20,6 +20,11 @@ const previewType = vscode.window.createTextEditorDecorationType({
   isWholeLine: true,
 });
 
+// Precompiled: parsed for every line of every block on each decoration refresh.
+const TEXT_COLOR_RE = /^SetTextColor\s+(\d+)\s+(\d+)\s+(\d+)/i;
+const BG_COLOR_RE = /^SetBackgroundColor\s+(\d+)\s+(\d+)\s+(\d+)/i;
+const BORDER_COLOR_RE = /^SetBorderColor\s+(\d+)\s+(\d+)\s+(\d+)/i;
+
 interface BlockInfo {
   start: number;
   end: number;
@@ -31,6 +36,9 @@ interface BlockInfo {
 }
 
 export class PoeFilterDecorationProvider {
+  private debounceTimer: ReturnType<typeof setTimeout> | undefined;
+  private pendingDoc: vscode.TextDocument | undefined;
+
   constructor(context: vscode.ExtensionContext) {
     for (const editor of vscode.window.visibleTextEditors) {
       this.updateDecorations(editor);
@@ -38,11 +46,8 @@ export class PoeFilterDecorationProvider {
 
     context.subscriptions.push(
       vscode.workspace.onDidChangeTextDocument(e => {
-        for (const editor of vscode.window.visibleTextEditors) {
-          if (editor.document === e.document) {
-            this.updateDecorations(editor);
-          }
-        }
+        // Debounced: avoid reparsing + 3x setDecorations on every keystroke.
+        this.scheduleUpdate(e.document);
       }),
       vscode.window.onDidChangeVisibleTextEditors(editors => {
         for (const editor of editors) {
@@ -53,6 +58,26 @@ export class PoeFilterDecorationProvider {
       hideMarkerType,
       previewType
     );
+  }
+
+  private scheduleUpdate(document: vscode.TextDocument): void {
+    this.pendingDoc = document;
+    if (this.debounceTimer) clearTimeout(this.debounceTimer);
+    this.debounceTimer = setTimeout(() => {
+      this.debounceTimer = undefined;
+      const doc = this.pendingDoc;
+      this.pendingDoc = undefined;
+      if (!doc) return;
+      for (const editor of vscode.window.visibleTextEditors) {
+        if (editor.document === doc) {
+          this.updateDecorations(editor);
+        }
+      }
+    }, 300);
+  }
+
+  dispose(): void {
+    if (this.debounceTimer) clearTimeout(this.debounceTimer);
   }
 
   private updateDecorations(editor: vscode.TextEditor): void {
@@ -152,13 +177,13 @@ export class PoeFilterDecorationProvider {
         content = this.stripComment(content);
         if (!content) continue;
 
-        this.parseColor(content, 'SetTextColor', (r, g, b) => {
+        this.parseColor(content, TEXT_COLOR_RE, (r, g, b) => {
           current!.textR = r; current!.textG = g; current!.textB = b;
         });
-        this.parseColor(content, 'SetBackgroundColor', (r, g, b) => {
+        this.parseColor(content, BG_COLOR_RE, (r, g, b) => {
           current!.bgR = r; current!.bgG = g; current!.bgB = b;
         });
-        this.parseColor(content, 'SetBorderColor', (r, g, b) => {
+        this.parseColor(content, BORDER_COLOR_RE, (r, g, b) => {
           current!.borderR = r; current!.borderG = g; current!.borderB = b;
         });
 
@@ -174,8 +199,8 @@ export class PoeFilterDecorationProvider {
     return blocks;
   }
 
-  private parseColor(content: string, keyword: string, setter: (r: number, g: number, b: number) => void): void {
-    const match = content.match(new RegExp(`^${keyword}\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)`, 'i'));
+  private parseColor(content: string, re: RegExp, setter: (r: number, g: number, b: number) => void): void {
+    const match = content.match(re);
     if (match) {
       setter(parseInt(match[1], 10), parseInt(match[2], 10), parseInt(match[3], 10));
     }

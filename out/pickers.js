@@ -2,9 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PoeFilterPickerProvider = void 0;
 const vscode = require("vscode");
-const path = require("path");
-const fs = require("fs");
-const child_process_1 = require("child_process");
 const data_1 = require("./data");
 /**
  * QuickPick-based parameter picker for MinimapIcon and PlayEffect lines.
@@ -37,13 +34,23 @@ class PoeFilterPickerProvider {
     constructor(context) {
         this._onDidChange = new vscode.EventEmitter();
         this.onDidChangeCodeLenses = this._onDidChange.event;
-        context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(() => this._onDidChange.fire()));
+        // Debounced: don't recompute all CodeLenses on every keystroke.
+        context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(() => {
+            if (this.debounceTimer)
+                clearTimeout(this.debounceTimer);
+            this.debounceTimer = setTimeout(() => this._onDidChange.fire(), 300);
+        }));
+        // Refresh lenses when the gate setting is toggled.
+        context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('poe-filter-best.parameterPickerCodeLens')) {
+                this._onDidChange.fire();
+            }
+        }));
         const cmds = [
             ['_pickMinimapSize', this.pickMinimapSize],
             ['_pickMinimapColor', this.pickMinimapColor],
             ['_pickMinimapShape', this.pickMinimapShape],
             ['_pickEffectColor', this.pickEffectColor],
-            ['_playSound', this.playSound],
         ];
         for (const [suffix, handler] of cmds) {
             const cmdId = `poe-filter-best.${suffix}`;
@@ -52,8 +59,18 @@ class PoeFilterPickerProvider {
             }));
         }
     }
+    dispose() {
+        if (this.debounceTimer)
+            clearTimeout(this.debounceTimer);
+    }
     // ── CodeLens ────────────────────────────────────────────────────────
     provideCodeLenses(document) {
+        // Setting-gated, default off: MinimapIcon/PlayEffect picker lenses.
+        const enabled = vscode.workspace
+            .getConfiguration('poe-filter-best')
+            .get('parameterPickerCodeLens', false);
+        if (!enabled)
+            return [];
         const lenses = [];
         for (let i = 0; i < document.lineCount; i++) {
             const trimmed = document.lineAt(i).text.trim();
@@ -68,17 +85,6 @@ class PoeFilterPickerProvider {
             }
             if (/^PlayEffect\b/i.test(trimmed)) {
                 lenses.push(this.lens(eol, '🎨 颜色', '_pickEffectColor', i));
-            }
-            // CustomAlertSound: show 试听 button only if sound file exists
-            if (/^CustomAlertSound\s+"/i.test(trimmed)) {
-                const soundRelPath = trimmed.match(/^CustomAlertSound\s+"([^"]+)"/i)?.[1];
-                if (soundRelPath) {
-                    const filterDir = path.dirname(document.uri.fsPath);
-                    const fullPath = path.resolve(filterDir, soundRelPath);
-                    if (fs.existsSync(fullPath)) {
-                        lenses.push(this.lens(eol, '🔊 试听', '_playSound', i));
-                    }
-                }
             }
         }
         return lenses;
@@ -127,30 +133,6 @@ class PoeFilterPickerProvider {
         const picked = await vscode.window.showQuickPick(items, { placeHolder: '选择光柱颜色' });
         if (picked)
             this.replaceParam(editor, line, 1, picked.value);
-    }
-    // ── Sound preview ────────────────────────────────────────────────────
-    async playSound(editor, line) {
-        const trimmed = editor.document.lineAt(line).text.trim();
-        const soundRelPath = trimmed.match(/^CustomAlertSound\s+"([^"]+)"/i)?.[1];
-        if (!soundRelPath)
-            return;
-        const filterDir = path.dirname(editor.document.uri.fsPath);
-        const fullPath = path.resolve(filterDir, soundRelPath);
-        if (!fs.existsSync(fullPath)) {
-            vscode.window.showWarningMessage(`音效文件不存在: ${soundRelPath}`);
-            return;
-        }
-        // Use system command to play audio
-        const cmd = process.platform === 'win32'
-            ? `start "" "${fullPath}"`
-            : process.platform === 'darwin'
-                ? `afplay "${fullPath}"`
-                : `xdg-open "${fullPath}"`;
-        (0, child_process_1.exec)(cmd, (err) => {
-            if (err) {
-                vscode.window.showErrorMessage(`播放失败: ${err.message}`);
-            }
-        });
     }
     // ── Line editing ────────────────────────────────────────────────────
     /**

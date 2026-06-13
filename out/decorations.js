@@ -18,22 +18,44 @@ const hideMarkerType = vscode.window.createTextEditorDecorationType({
 const previewType = vscode.window.createTextEditorDecorationType({
     isWholeLine: true,
 });
+// Precompiled: parsed for every line of every block on each decoration refresh.
+const TEXT_COLOR_RE = /^SetTextColor\s+(\d+)\s+(\d+)\s+(\d+)/i;
+const BG_COLOR_RE = /^SetBackgroundColor\s+(\d+)\s+(\d+)\s+(\d+)/i;
+const BORDER_COLOR_RE = /^SetBorderColor\s+(\d+)\s+(\d+)\s+(\d+)/i;
 class PoeFilterDecorationProvider {
     constructor(context) {
         for (const editor of vscode.window.visibleTextEditors) {
             this.updateDecorations(editor);
         }
         context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(e => {
-            for (const editor of vscode.window.visibleTextEditors) {
-                if (editor.document === e.document) {
-                    this.updateDecorations(editor);
-                }
-            }
+            // Debounced: avoid reparsing + 3x setDecorations on every keystroke.
+            this.scheduleUpdate(e.document);
         }), vscode.window.onDidChangeVisibleTextEditors(editors => {
             for (const editor of editors) {
                 this.updateDecorations(editor);
             }
         }), showMarkerType, hideMarkerType, previewType);
+    }
+    scheduleUpdate(document) {
+        this.pendingDoc = document;
+        if (this.debounceTimer)
+            clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(() => {
+            this.debounceTimer = undefined;
+            const doc = this.pendingDoc;
+            this.pendingDoc = undefined;
+            if (!doc)
+                return;
+            for (const editor of vscode.window.visibleTextEditors) {
+                if (editor.document === doc) {
+                    this.updateDecorations(editor);
+                }
+            }
+        }, 300);
+    }
+    dispose() {
+        if (this.debounceTimer)
+            clearTimeout(this.debounceTimer);
     }
     updateDecorations(editor) {
         if (editor.document.languageId !== 'poe-filter')
@@ -125,17 +147,17 @@ class PoeFilterDecorationProvider {
                 content = this.stripComment(content);
                 if (!content)
                     continue;
-                this.parseColor(content, 'SetTextColor', (r, g, b) => {
+                this.parseColor(content, TEXT_COLOR_RE, (r, g, b) => {
                     current.textR = r;
                     current.textG = g;
                     current.textB = b;
                 });
-                this.parseColor(content, 'SetBackgroundColor', (r, g, b) => {
+                this.parseColor(content, BG_COLOR_RE, (r, g, b) => {
                     current.bgR = r;
                     current.bgG = g;
                     current.bgB = b;
                 });
-                this.parseColor(content, 'SetBorderColor', (r, g, b) => {
+                this.parseColor(content, BORDER_COLOR_RE, (r, g, b) => {
                     current.borderR = r;
                     current.borderG = g;
                     current.borderB = b;
@@ -150,8 +172,8 @@ class PoeFilterDecorationProvider {
         finishBlock(doc.lineCount - 1);
         return blocks;
     }
-    parseColor(content, keyword, setter) {
-        const match = content.match(new RegExp(`^${keyword}\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)`, 'i'));
+    parseColor(content, re, setter) {
+        const match = content.match(re);
         if (match) {
             setter(parseInt(match[1], 10), parseInt(match[2], 10), parseInt(match[3], 10));
         }

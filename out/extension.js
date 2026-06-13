@@ -57,9 +57,9 @@ function activate(context) {
     // Find All References
     context.subscriptions.push(vscode.languages.registerReferenceProvider(LANG_SELECTOR, new definition_1.PoeFilterReferenceProvider()));
     // Scrollbar decorations (green=Show, red=Hide)
-    new decorations_1.PoeFilterDecorationProvider(context);
+    context.subscriptions.push(new decorations_1.PoeFilterDecorationProvider(context));
     // Status bar: POE version + block count
-    new statusBar_1.PoeFilterStatusBar(context);
+    context.subscriptions.push(new statusBar_1.PoeFilterStatusBar(context));
     // Webview panel: block explorer with color preview
     const panel = new panel_1.PoeFilterPanel(context);
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(panel_1.PoeFilterPanel.viewType, panel));
@@ -69,10 +69,10 @@ function activate(context) {
     context.subscriptions.push(vscode.languages.registerDocumentLinkProvider(LANG_SELECTOR, new documentLinks_1.PoeFilterDocumentLinkProvider()));
     // QuickPick pickers: MinimapIcon / PlayEffect parameter selection
     const pickerProvider = new pickers_1.PoeFilterPickerProvider(context);
-    context.subscriptions.push(vscode.languages.registerCodeLensProvider(LANG_SELECTOR, pickerProvider));
+    context.subscriptions.push(vscode.languages.registerCodeLensProvider(LANG_SELECTOR, pickerProvider), pickerProvider);
     // CodeLens: state buttons above each block
     const codeLensProvider = new codelens_1.PoeFilterCodeLensProvider(context);
-    context.subscriptions.push(vscode.languages.registerCodeLensProvider(LANG_SELECTOR, codeLensProvider));
+    context.subscriptions.push(vscode.languages.registerCodeLensProvider(LANG_SELECTOR, codeLensProvider), codeLensProvider);
     // Internal command: CodeLens click → move cursor + trigger block command
     context.subscriptions.push(vscode.commands.registerTextEditorCommand('poe-filter-best._codeLensAction', (editor, _edit, command, line) => {
         // Move cursor to the block header line

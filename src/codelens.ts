@@ -14,11 +14,20 @@ import * as vscode from 'vscode';
 export class PoeFilterCodeLensProvider implements vscode.CodeLensProvider {
   private _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
   onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
+  private debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(context: vscode.ExtensionContext) {
+    // Debounced: don't recompute all CodeLenses on every keystroke.
     context.subscriptions.push(
-      vscode.workspace.onDidChangeTextDocument(() => this._onDidChangeCodeLenses.fire()),
+      vscode.workspace.onDidChangeTextDocument(() => {
+        if (this.debounceTimer) clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(() => this._onDidChangeCodeLenses.fire(), 300);
+      }),
     );
+  }
+
+  dispose(): void {
+    if (this.debounceTimer) clearTimeout(this.debounceTimer);
   }
 
   provideCodeLenses(

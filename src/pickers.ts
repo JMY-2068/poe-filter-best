@@ -1,7 +1,4 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs';
-import { exec } from 'child_process';
 import { MINIMAP_COLORS, MINIMAP_SHAPES, PLAY_EFFECT_COLORS } from './data';
 
 /**
@@ -38,10 +35,24 @@ const SHAPE_LABELS: Record<string, string> = {
 export class PoeFilterPickerProvider implements vscode.CodeLensProvider {
   private _onDidChange = new vscode.EventEmitter<void>();
   onDidChangeCodeLenses = this._onDidChange.event;
+  private debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(context: vscode.ExtensionContext) {
+    // Debounced: don't recompute all CodeLenses on every keystroke.
     context.subscriptions.push(
-      vscode.workspace.onDidChangeTextDocument(() => this._onDidChange.fire()),
+      vscode.workspace.onDidChangeTextDocument(() => {
+        if (this.debounceTimer) clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(() => this._onDidChange.fire(), 300);
+      }),
+    );
+
+    // Refresh lenses when the gate setting is toggled.
+    context.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration(e => {
+        if (e.affectsConfiguration('poe-filter-best.parameterPickerCodeLens')) {
+          this._onDidChange.fire();
+        }
+      })
     );
 
     const cmds: [string, (e: vscode.TextEditor, line: number) => Promise<void>][] = [
@@ -49,7 +60,6 @@ export class PoeFilterPickerProvider implements vscode.CodeLensProvider {
       ['_pickMinimapColor', this.pickMinimapColor],
       ['_pickMinimapShape', this.pickMinimapShape],
       ['_pickEffectColor', this.pickEffectColor],
-      ['_playSound', this.playSound],
     ];
     for (const [suffix, handler] of cmds) {
       const cmdId = `poe-filter-best.${suffix}`;
@@ -61,9 +71,19 @@ export class PoeFilterPickerProvider implements vscode.CodeLensProvider {
     }
   }
 
+  dispose(): void {
+    if (this.debounceTimer) clearTimeout(this.debounceTimer);
+  }
+
   // ── CodeLens ────────────────────────────────────────────────────────
 
   provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
+    // Setting-gated, default off: MinimapIcon/PlayEffect picker lenses.
+    const enabled = vscode.workspace
+      .getConfiguration('poe-filter-best')
+      .get<boolean>('parameterPickerCodeLens', false);
+    if (!enabled) return [];
+
     const lenses: vscode.CodeLens[] = [];
 
     for (let i = 0; i < document.lineCount; i++) {
@@ -82,18 +102,6 @@ export class PoeFilterPickerProvider implements vscode.CodeLensProvider {
 
       if (/^PlayEffect\b/i.test(trimmed)) {
         lenses.push(this.lens(eol, '🎨 颜色', '_pickEffectColor', i));
-      }
-
-      // CustomAlertSound: show 试听 button only if sound file exists
-      if (/^CustomAlertSound\s+"/i.test(trimmed)) {
-        const soundRelPath = trimmed.match(/^CustomAlertSound\s+"([^"]+)"/i)?.[1];
-        if (soundRelPath) {
-          const filterDir = path.dirname(document.uri.fsPath);
-          const fullPath = path.resolve(filterDir, soundRelPath);
-          if (fs.existsSync(fullPath)) {
-            lenses.push(this.lens(eol, '🔊 试听', '_playSound', i));
-          }
-        }
       }
     }
 
@@ -145,34 +153,6 @@ export class PoeFilterPickerProvider implements vscode.CodeLensProvider {
     }));
     const picked = await vscode.window.showQuickPick(items, { placeHolder: '选择光柱颜色' });
     if (picked) this.replaceParam(editor, line, 1, picked.value);
-  }
-
-  // ── Sound preview ────────────────────────────────────────────────────
-
-  private async playSound(editor: vscode.TextEditor, line: number) {
-    const trimmed = editor.document.lineAt(line).text.trim();
-    const soundRelPath = trimmed.match(/^CustomAlertSound\s+"([^"]+)"/i)?.[1];
-    if (!soundRelPath) return;
-
-    const filterDir = path.dirname(editor.document.uri.fsPath);
-    const fullPath = path.resolve(filterDir, soundRelPath);
-    if (!fs.existsSync(fullPath)) {
-      vscode.window.showWarningMessage(`音效文件不存在: ${soundRelPath}`);
-      return;
-    }
-
-    // Use system command to play audio
-    const cmd = process.platform === 'win32'
-      ? `start "" "${fullPath}"`
-      : process.platform === 'darwin'
-        ? `afplay "${fullPath}"`
-        : `xdg-open "${fullPath}"`;
-
-    exec(cmd, (err) => {
-      if (err) {
-        vscode.window.showErrorMessage(`播放失败: ${err.message}`);
-      }
-    });
   }
 
   // ── Line editing ────────────────────────────────────────────────────
